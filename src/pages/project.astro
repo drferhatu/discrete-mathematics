@@ -1,0 +1,91 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SectionHeading from '@/components/SectionHeading.astro';
+import { href, weekHref, scheduleOf, formatDate } from '@/lib/site';
+
+const milestones = [
+  { w: 4, t: 'Assignment', d: 'You receive your personal project by announcement. Accept the project repository on Classroom 50 and write a one-paragraph plan in the README.' },
+  { w: 7, t: 'Math design', d: 'Definitions, the claims your program will test or demonstrate, and where your data comes from. One page in the repository.' },
+  { w: 11, t: 'Working prototype', d: 'The minimum scope runs end to end and has tests. Short check-in during the lab.' },
+  { w: 15, t: 'Demo day', d: 'Five-minute live demo in class, final repository and a two-page report.' },
+];
+const rubric = [
+  { k: 'Mathematical correctness and depth', p: 30, d: 'Definitions are precise, claims are justified, the math is used, not decorated.' },
+  { k: 'Software quality and tests', p: 25, d: 'Readable code, meaningful tests, a README that lets someone else run it in five minutes.' },
+  { k: 'Demo and explanation', p: 20, d: 'You can explain every part of your code and your math, and answer questions about it.' },
+  { k: 'Report', p: 15, d: 'Two pages: problem, the discrete math behind it, results, limitations.' },
+  { k: 'Process', p: 10, d: 'Milestones on time, steady commit history instead of one big final push.' },
+];
+---
+<BaseLayout title="Semester project" description="The Discrete Mathematics semester project: 15% of the final grade, milestones, deliverables and rubric.">
+  <header class="relative overflow-hidden border-b border-line">
+    <div class="grid-paper grid-fade pointer-events-none absolute inset-0" aria-hidden="true"></div>
+    <div class="wrap relative py-14 md:py-20">
+      <p class="eyebrow">Semester project · 15% of the final grade</p>
+      <h1 class="display mt-3 max-w-4xl text-5xl leading-[1] text-ink md:text-7xl">Build something that <span class="italic text-brand">needs</span> the math.</h1>
+      <p class="lede mt-6 max-w-2xl">
+        Each of you gets a personal project that sits where discrete mathematics meets real software: a solver, a simulator, a tool or an interactive explainer.
+        The math is the engine, Python is the body. Projects are assigned individually by the instructor.
+      </p>
+    </div>
+  </header>
+
+  <section class="wrap py-16">
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="card p-6">
+        <p class="eyebrow">What counts</p>
+        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">The project is 15% of your <strong class="text-ink">final</strong> grade (the other 85% is the final exam). The final is 60% of the course, so the project is 9% of your overall grade.</p>
+      </div>
+      <div class="card p-6">
+        <p class="eyebrow">How you get it</p>
+        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">Your topic is announced to you personally in week 4. Every student has a different project, sized so that the minimum scope is reachable and the advanced scope is a real challenge.</p>
+      </div>
+      <div class="card p-6">
+        <p class="eyebrow">Where you work</p>
+        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">In your own private repository created by Classroom 50, using the same Codespaces workflow as the <a class="link" href={href('/labs')}>labs</a>. Commit often: your history is part of the grade.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-y border-line bg-paper-2/50">
+    <div class="wrap py-16">
+      <SectionHeading eyebrow="Timeline" title="Four milestones" />
+      <ol class="mt-10 grid gap-4 md:grid-cols-4">
+        {milestones.map((m, i) => (
+          <li class="card relative p-6">
+            <p class="font-mono text-xs text-accent">M{i}</p>
+            <h3 class="mt-2 text-lg font-semibold text-ink">{m.t}</h3>
+            <p class="mt-1 font-mono text-xs text-ink-3"><a href={weekHref(m.w)} class="hover:text-brand">week {m.w}</a> · {formatDate(scheduleOf(m.w)?.date)}</p>
+            <p class="mt-3 text-sm leading-relaxed text-ink-2">{m.d}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="wrap grid gap-12 py-16 md:grid-cols-[1.2fr_1fr]">
+    <div>
+      <SectionHeading eyebrow="Rubric" title="How it is graded" />
+      <ul class="mt-8 space-y-3">
+        {rubric.map((r) => (
+          <li class="card grid grid-cols-[4rem_1fr] items-start gap-4 p-5">
+            <span class="display text-4xl leading-none text-ink">{r.p}</span>
+            <span><span class="block font-semibold text-ink">{r.k}</span><span class="mt-1 block text-sm text-ink-2">{r.d}</span></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div>
+      <SectionHeading eyebrow="Deliverables" title="What you hand in" />
+      <ul class="mt-8 space-y-4 text-[15px] leading-relaxed text-ink-2">
+        <li class="border-l-2 border-line-2 pl-4"><strong class="text-ink">Repository</strong>: code, tests and a README with setup, usage and an example run.</li>
+        <li class="border-l-2 border-line-2 pl-4"><strong class="text-ink">Report</strong>: two pages (Markdown or PDF in the repo). The problem, the discrete mathematics behind it, results, limitations, sources.</li>
+        <li class="border-l-2 border-line-2 pl-4"><strong class="text-ink">Demo</strong>: five minutes live on demo day, followed by two or three questions.</li>
+      </ul>
+      <aside class="callout callout-warn mt-8">
+        <p class="callout-title">AI tools and integrity</p>
+        <p>You may use AI assistants. You are graded on what <em>you</em> understand: expect questions about any line of your code and any step of your math. Cite tools, libraries and sources in the README. Copying another student's project is an integrity violation for both students.</p>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>

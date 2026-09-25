@@ -1,0 +1,9 @@
+# notebook build dependencies (GitHub Actions and local builds)
+nbformat
+nbconvert
+nbclient
+ipykernel
+pandas
+matplotlib
+jinja2
+pytest

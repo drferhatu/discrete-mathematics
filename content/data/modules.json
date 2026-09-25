@@ -1,0 +1,14 @@
+[
+  { "id": "m1", "slug": "propositional-logic", "title": "Propositional Logic", "short": "Propositional Logic", "weeks": [1, 2, 3], "color": "indigo", "glyph": "p → q",
+    "summary": "Propositions, connectives and truth tables: the same Boolean logic your CPU, your if-statements and every search engine run on." },
+  { "id": "m2", "slug": "predicate-logic", "title": "Predicate Logic and Quantifiers", "short": "Predicate Logic", "weeks": [4, 5], "color": "violet", "glyph": "∀x ∃y",
+    "summary": "Variables, predicates, ∀ and ∃. Precise specifications for programs and queries, from SQL WHERE clauses to API contracts." },
+  { "id": "m3", "slug": "reasoning-and-proof", "title": "Reasoning and Proof", "short": "Proofs", "weeks": [6, 7, 8], "color": "rose", "glyph": "∴",
+    "summary": "Rules of inference and proof techniques. How to be certain, and how verified software and theorem provers make machines certain too." },
+  { "id": "m4", "slug": "discrete-structures", "title": "Sets, Relations and Functions", "short": "Discrete Structures", "weeks": [9, 10, 11], "color": "teal", "glyph": "A ∩ B",
+    "summary": "The data types of mathematics: sets, relations, functions, sequences, and the surprising sizes of infinity." },
+  { "id": "m5", "slug": "induction-and-counting", "title": "Induction, Recursion and Counting", "short": "Induction & Counting", "weeks": [12, 13], "color": "amber", "glyph": "n → n+1",
+    "summary": "Prove things for every n, reason about recursive code, and count possibilities without listing them." },
+  { "id": "m6", "slug": "graphs-and-trees", "title": "Graphs and Trees", "short": "Graphs", "weeks": [14, 15], "color": "emerald", "glyph": "G = (V, E)",
+    "summary": "Networks, maps, schedules and file systems. Model the connected world and color it without conflicts." }
+]

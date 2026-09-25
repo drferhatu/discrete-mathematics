@@ -1,0 +1,71 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SectionHeading from '@/components/SectionHeading.astro';
+import { getLabsSorted, labHref, href, course } from '@/lib/site';
+const labs = await getLabsSorted();
+const flow = [
+  { k: '01', t: 'Accept the lab', d: 'On classroom50.org, one click creates your own private repository with the starter code, tests and notebook for that week.', code: 'classroom50.org' },
+  { k: '02', t: 'Open it in Codespaces', d: 'VS Code in your browser, the same experience as Harvard’s cs50.dev. Python and the tests are installed for you. Nothing to install on the lab PCs.', code: 'Code → Codespaces' },
+  { k: '03', t: 'Solve and self-check', d: 'Fill in the TODOs. Run the checks as often as you like: :) means correct, :( tells you exactly what is wrong.', code: 'python check.py' },
+  { k: '04', t: 'Push to submit', d: 'Every push is graded by GitHub Actions within a minute or two, and your score is published as a Release in your repository.', code: 'git push' },
+];
+const STATUS: Record<string, string> = { open: 'bg-true-soft text-true', closed: 'bg-paper-2 text-ink-3', draft: 'bg-brand-soft text-brand' };
+---
+<BaseLayout title="Labs" description="Weekly Python labs for Discrete Mathematics, autograded with Classroom 50 and solved in GitHub Codespaces.">
+  <header class="relative overflow-hidden border-b border-line">
+    <div class="grid-paper grid-fade pointer-events-none absolute inset-0" aria-hidden="true"></div>
+    <div class="wrap relative py-14 md:py-20">
+      <p class="eyebrow">Labs · Part 2 of every class</p>
+      <h1 class="display mt-3 max-w-4xl text-5xl leading-[1] text-ink md:text-7xl">Math you can <span class="italic text-brand">run</span>.</h1>
+      <p class="lede mt-6 max-w-2xl">Every lecture has a lab. You turn the week’s idea into Python, tests check you instantly, and your score appears on GitHub. The workflow comes from Harvard’s CS50 team: Classroom 50 for assignments and autograding, VS Code in the browser for coding, fast feedback all the way.</p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href={href('/guides/lab-setup')} class="btn-primary">First-time setup (do this once)</a>
+        <a href={course.classroom.web} target="_blank" rel="noopener" class="btn-ghost">classroom50.org ↗</a>
+        <a href={course.classroom.editor} target="_blank" rel="noopener" class="btn-ghost">Your codespaces ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="wrap py-16">
+    <SectionHeading eyebrow="The loop" title="Four steps, every week" />
+    <ol class="mt-10 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
+      {flow.map((f) => (
+        <li class="bg-card p-6">
+          <p class="font-mono text-xs text-accent">{f.k}</p>
+          <h3 class="mt-2 text-lg font-semibold text-ink">{f.t}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-ink-2">{f.d}</p>
+          <p class="mt-4 inline-block rounded-md bg-paper-2 px-2 py-1 font-mono text-xs text-ink">{f.code}</p>
+        </li>
+      ))}
+    </ol>
+    <div class="mt-8 grid gap-6 md:grid-cols-2">
+      <div class="card p-6">
+        <p class="eyebrow">Starting without the instructor</p>
+        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">You never need to wait. Open the lab page for the week, follow the numbered steps, and ask your neighbor before you ask the instructor. Stuck for more than 10 minutes on the same error? Write it down and move to the next task; we will fix it together.</p>
+      </div>
+      <div class="card p-6">
+        <p class="eyebrow">How labs count</p>
+        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">{course.assessment.labsNote} Labs are also where you build the skills for the <a class="link" href={href('/project')}>semester project</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap pb-16">
+    <SectionHeading eyebrow="All labs" title="Lab list" />
+    <ul class="mt-8 grid gap-3">
+      {labs.map((l) => (
+        <li>
+          <a href={labHref(l.id)} class="card group grid items-center gap-4 p-4 hover:border-ink sm:grid-cols-[3.5rem_1fr_auto]">
+            <span class="grid size-12 place-items-center rounded-xl bg-ink font-mono text-sm font-semibold text-paper">L{String(l.data.lab).padStart(2, '0')}</span>
+            <span class="min-w-0">
+              <span class="block font-semibold text-ink group-hover:text-brand">{l.data.title}</span>
+              <span class="block text-sm text-ink-2">{l.data.description}</span>
+              <span class="mt-1 block font-mono text-[11px] text-ink-3">week {l.data.week} · {l.data.duration} · {l.data.topics.join(' · ')}</span>
+            </span>
+            <span class:list={['justify-self-start rounded-md px-2 py-1 font-mono text-[11px] font-semibold uppercase sm:justify-self-end', STATUS[l.data.status]]}>{l.data.status === 'draft' ? 'coming soon' : l.data.status}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</BaseLayout>

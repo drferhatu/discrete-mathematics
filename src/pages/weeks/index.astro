@@ -1,0 +1,26 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SectionHeading from '@/components/SectionHeading.astro';
+import WeekCard from '@/components/WeekCard.astro';
+import { getWeeksSorted, modules, moduleColorVar } from '@/lib/site';
+const weeks = await getWeeksSorted();
+---
+<BaseLayout title="Weeks" description="All fifteen weeks of Discrete Mathematics: objectives, notes, reading and labs.">
+  <div class="wrap py-14 md:py-20">
+    <SectionHeading eyebrow="Weeks" title="Fifteen Mondays" lede="Each card opens a week: objectives, notes, the wow moment, the lab and where to go deeper." />
+  </div>
+  <div class="wrap space-y-14 pb-16">
+    {modules.map((m, i) => (
+      <section aria-labelledby={`m-${m.id}`}>
+        <div class="mb-4 flex flex-wrap items-baseline gap-3">
+          <span class="font-mono text-xs font-semibold" style={`color:${moduleColorVar(m)}`}>{String(i + 1).padStart(2, '0')}</span>
+          <h2 id={`m-${m.id}`} class="display text-3xl text-ink">{m.title}</h2>
+          <span class="font-mono text-sm text-ink-3">{m.glyph}</span>
+        </div>
+        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {weeks.filter((w) => w.data.module === m.id).map((w) => <li><WeekCard week={w} /></li>)}
+        </ul>
+      </section>
+    ))}
+  </div>
+</BaseLayout>

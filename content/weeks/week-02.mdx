@@ -1,0 +1,221 @@
+---
+week: 2
+title: "Propositional Logic: Propositions, Connectives, Truth Tables"
+description: "What counts as a proposition, the five connectives, truth tables, and the most misunderstood operator in computer science: the conditional."
+module: m1
+status: ready
+reading: "Rosen 1.1"
+lab: lab-01
+slides:
+  - {"title": "Slides: propositions and logical operators", "file": "dm-2026-w02-propositional-logic.pdf"}
+objectives:
+  - "Decide whether a sentence is a proposition, and explain why questions, commands and opinions are not."
+  - "Use the connectives ¬, ∧, ∨, ⊕, →, ↔ and write their truth tables from memory."
+  - "Build the truth table of any compound proposition and know that n variables give 2ⁿ rows."
+  - "Explain why p → q is true when p is false, and translate “if”, “only if”, “unless”, “necessary” and “sufficient”."
+  - "Form the converse, inverse and contrapositive, and know which one is equivalent to the original."
+  - "Implement all of the above in Python (Lab 1)."
+wow:
+  title: "A truth table for 300 variables has more rows than there are atoms in the universe."
+  text: "n variables give 2ⁿ rows, and 2³⁰⁰ is about 10⁹⁰, while the observable universe has roughly 10⁸⁰ atoms. Yet industrial SAT solvers decide formulas with millions of variables every day, to verify chips and schedule airlines. Today you learn the truth table; by week 3 you will see why clever search beats brute force."
+industry:
+  - {"t": "Every if-statement", "d": "Conditions in code are compound propositions. A wrong negation (“not (a and b)” vs “not a and not b”) is one of the most common bugs in code review."}
+  - {"t": "Access control", "d": "Rules like “admin, or owner and not suspended” are propositions evaluated on every request of a web app."}
+  - {"t": "Hardware", "d": "AND, OR, NOT and XOR are physical gates. Your CPU is billions of tiny truth tables."}
+  - {"t": "Requirements", "d": "“The alarm sounds only if the door is open” and “if the door is open the alarm sounds” are different requirements. Engineers must tell them apart."}
+resources:
+  - {"title": "Stanford CS103 truth table tool", "url": "https://web.stanford.edu/class/cs103/tools/truth-table-tool/", "note": "check your hand-made tables"}
+  - {"title": "forall x: Calgary, an open logic textbook", "url": "https://forallx.openlogicproject.org/", "note": "Chapters 1–11: sentences, connectives, truth tables"}
+  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Section 0.2, mathematical statements"}
+  - {"title": "Mathematics for Computer Science", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapter 3.1–3.3, propositional formulas"}
+tags: ["proposition", "truth table", "negation", "conjunction", "disjunction", "XOR", "implication", "conditional", "biconditional", "contrapositive", "converse"]
+---
+
+## Propositions
+
+> [!definition] Proposition
+> A **proposition** is a declarative sentence that is either true or false, but not both.
+
+Two conditions: it must *state* something (declarative), and it must have a definite **truth value**, true (T, 1) or false (F, 0). We name propositions with lowercase letters $p, q, r, s, \dots$
+
+> [!try] Which of these are propositions?
+> 1. The capital of Türkiye is Istanbul.
+> 2. $2 + 3 = 5$
+> 3. Today the weather is great.
+> 4. How old are you?
+> 5. Do not be late!
+> 6. 2375
+> 7. A compiler translates source code into machine code.
+> 8. $x + 1 = 5$
+
+<details>
+<summary>Answers</summary>
+
+1. **Proposition**, and it is *false* (the capital is Ankara). False propositions are still propositions.
+2. **Proposition**, true.
+3. **Not a proposition.** It is an opinion; it has no definite truth value.
+4. **Not a proposition.** A question states nothing.
+5. **Not a proposition.** A command.
+6. **Not a proposition.** A number on its own asserts nothing. “2375 is odd” would be a proposition (a true one).
+7. **Proposition**, true.
+8. **Not a proposition** until we know $x$. It is a *propositional function* $P(x)$; $P(4)$ is true, $P(0)$ is false. Predicates are the topic of [week 4](/weeks/week-04).
+</details>
+
+## Negation
+
+> [!definition] Negation
+> The **negation** of $p$, written $\neg p$ (read “not $p$”), is true exactly when $p$ is false.
+
+<table class="tt">
+<thead><tr><th>p</th><th>¬p</th></tr></thead>
+<tbody><tr><td>1</td><td>0</td></tr><tr><td>0</td><td>1</td></tr></tbody>
+</table>
+
+Negate the *whole* statement, not a word in it. The negation of “the queue is empty” is “the queue is not empty”, and the negation of $3 > 5$ is $3 \le 5$ (not $3 < 5$).
+
+## Connectives
+
+Connectives build **compound propositions** from simpler ones. Here are all of them in one table: memorize it, you will use it every week.
+
+<table class="tt">
+<thead><tr><th>p</th><th>q</th><th>p ∧ q</th><th>p ∨ q</th><th>p ⊕ q</th><th>p → q</th><th>p ↔ q</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+</tbody>
+</table>
+
+| Symbol | Name | Read as | True when | Python |
+|---|---|---|---|---|
+| $p \land q$ | conjunction | $p$ and $q$ | both are true | `p and q` |
+| $p \lor q$ | disjunction | $p$ or $q$ | at least one is true (inclusive) | `p or q` |
+| $p \oplus q$ | exclusive or | $p$ xor $q$ | exactly one is true | `p != q` |
+| $p \to q$ | conditional | if $p$ then $q$ | not ($p$ true and $q$ false) | `(not p) or q` |
+| $p \leftrightarrow q$ | biconditional | $p$ if and only if $q$ | both have the same value | `p == q` |
+
+> [!warning] Inclusive or exclusive?
+> In English “or” is ambiguous. “Tea or coffee?” usually means one of them (exclusive). In mathematics and in code, **∨ is inclusive**: $p \lor q$ is true when both are true. Use ⊕ when you mean “exactly one”.
+
+## Truth tables
+
+A **truth table** lists every combination of truth values of the variables and the resulting value of the formula. With $n$ variables there are $2^n$ rows, because each variable doubles the number of cases.
+
+Build it column by column, from the inside out. For $(p \lor \neg q) \to (p \land q)$:
+
+<table class="tt">
+<thead><tr><th>p</th><th>q</th><th>¬q</th><th>p ∨ ¬q</th><th>p ∧ q</th><th>(p ∨ ¬q) → (p ∧ q)</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+</tbody>
+</table>
+
+Now let the computer do it. Type any formula, including the one above as `(p | ~q) -> (p & q)`:
+
+<LogicPlayground initial="(p | ~q) -> (p & q)" id="lp-week2" />
+
+> [!note] Precedence
+> From strongest to weakest: $\neg$, then $\land$, then $\lor$, then $\to$, then $\leftrightarrow$. So $\neg p \land q \to r$ means $((\neg p) \land q) \to r$. When in doubt, use parentheses; your readers (and your future self) will thank you.
+
+## The conditional, carefully
+
+$p \to q$ is the connective students get wrong most often, and it is the one programmers rely on most. $p$ is the **hypothesis** (antecedent), $q$ the **conclusion** (consequent).
+
+> [!definition] Conditional
+> $p \to q$ is false in exactly one case: $p$ is true and $q$ is false. In every other case it is true.
+
+Think of it as a **promise**. “If you enter valid credentials, then you will be logged in.”
+
+| Credentials | Result | Promise |
+|---|---|---|
+| valid | logged in | kept |
+| valid | not logged in | **broken** |
+| invalid | logged in | not broken: no promise was made about invalid credentials |
+| invalid | not logged in | not broken |
+
+The promise only says something when the hypothesis holds. When $p$ is false, $p \to q$ is **vacuously true**. That is why $p \to q$ has the same truth table as $\neg p \lor q$, and why Python code often writes implications as `not p or q`.
+
+### Many ways to say $p \to q$
+
+| English | Logic |
+|---|---|
+| if $p$, then $q$ · $q$ if $p$ · $q$ whenever $p$ | $p \to q$ |
+| $p$ **only if** $q$ | $p \to q$ |
+| $p$ is **sufficient** for $q$ | $p \to q$ |
+| $q$ is **necessary** for $p$ | $p \to q$ |
+| $q$ **unless** $\neg p$ | $p \to q$ |
+
+> [!example] “Only if” is the trap
+> “You can take the final **only if** you attended 70% of the classes.” Let $f$: you take the final, $a$: you attended 70%. The sentence is $f \to a$. Attendance is *necessary*, not *sufficient*: attending does not by itself put you in the exam room (you still need to register), but not attending keeps you out.
+
+### Converse, inverse, contrapositive
+
+From $p \to q$ we can build three related conditionals:
+
+| Name | Form | Equivalent to $p \to q$? |
+|---|---|---|
+| converse | $q \to p$ | no |
+| inverse | $\neg p \to \neg q$ | no |
+| **contrapositive** | $\neg q \to \neg p$ | **yes** |
+
+> [!theorem] Contrapositive
+> $p \to q \equiv \neg q \to \neg p$. The converse and the inverse are equivalent to each other, but not to the original.
+
+“If today is Saturday, then tomorrow is Sunday.” Converse: “If tomorrow is Sunday, today is Saturday”, which happens to be true here, but only because of how the calendar works, not because of logic. Inverse: “If today is not Saturday, tomorrow is not Sunday.” Contrapositive: “If tomorrow is not Sunday, today is not Saturday”, which is *always* as true as the original. Check all of them in the playground: type `(p -> q) <-> (~q -> ~p)` and then `(p -> q) <-> (q -> p)`.
+
+> [!why] Why programmers care
+> The contrapositive is how you debug: “if the input is valid, the output is sorted” is the same claim as “if the output is not sorted, the input was not valid”. When a test fails, you reason backwards with the contrapositive. It is also a proof technique we will use in [week 7](/weeks/week-07).
+
+## The biconditional
+
+$p \leftrightarrow q$ (“$p$ if and only if $q$”, often written “iff”) is true when $p$ and $q$ have the same truth value. It means $(p \to q) \land (q \to p)$: $p$ is both necessary and sufficient for $q$. Notice that $p \leftrightarrow q$ is exactly $\neg(p \oplus q)$. In code, it is `p == q` on booleans. We will go deeper next week.
+
+## Translating English into logic
+
+1. Find the atomic propositions and name them.
+2. Find the connectives, paying special attention to “only if”, “unless”, “but” (which means $\land$) and “neither … nor” ($\neg p \land \neg q$).
+3. Add parentheses to match the intended meaning.
+
+> [!try] Translate
+> Let $p$: “the server is overloaded”, $q$: “the request is served from cache”, $r$: “the response is slow”.
+> 1. The response is slow only if the server is overloaded and the request is not served from cache.
+> 2. The request is served from cache unless the server is overloaded.
+> 3. Neither is the server overloaded nor is the response slow.
+
+<details>
+<summary>Answers</summary>
+
+1. $r \to (p \land \neg q)$
+2. “$q$ unless $p$” means “if not $p$ then $q$”: $\neg p \to q$ (equivalently $p \lor q$).
+3. $\neg p \land \neg r$
+</details>
+
+## Logic on bits
+
+Computers store truth values as bits, 1 and 0, and apply connectives to whole **bit strings** position by position. Python does this with integers:
+
+```python
+a = 0b0110_1100
+b = 0b1010_1010
+print(f"{a & b:08b}")   # AND  → 00101000
+print(f"{a | b:08b}")   # OR   → 11101110
+print(f"{a ^ b:08b}")   # XOR  → 11000110
+```
+
+This is how file permissions (`chmod 755`), network masks and feature flags work. You will use it in the lab.
+
+## Summary
+
+- A proposition is a declarative sentence with exactly one truth value.
+- Six operators: $\neg, \land, \lor, \oplus, \to, \leftrightarrow$. Know their tables cold.
+- $n$ variables → $2^n$ rows.
+- $p \to q$ is false only when $p$ is true and $q$ is false; it equals $\neg p \lor q$.
+- $p \to q \equiv \neg q \to \neg p$ (contrapositive). The converse is **not** equivalent.
+- “$p$ only if $q$” is $p \to q$; necessary conditions are conclusions, sufficient conditions are hypotheses.
+
+> [!try] Practice before the lab
+> Work through the odd-numbered exercises of Rosen 1.1 (answers are in the back of the book). Then open [Lab 1](/labs/lab-01) and build your own truth-table engine.

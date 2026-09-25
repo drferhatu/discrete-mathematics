@@ -1,0 +1,12 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { href } from '@/lib/site';
+---
+<BaseLayout title="Not found">
+  <div class="wrap-narrow py-24 text-center">
+    <p class="font-mono text-sm text-accent">404 · ∄ page</p>
+    <h1 class="display mt-3 text-6xl text-ink">There exists no such page.</h1>
+    <p class="mt-4 text-ink-2">∀ links on this site, the link works. This one is a counterexample.</p>
+    <a href={href('/')} class="btn-primary mt-8">Back home</a>
+  </div>
+</BaseLayout>

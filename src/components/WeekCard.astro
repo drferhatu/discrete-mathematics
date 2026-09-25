@@ -1,0 +1,36 @@
+---
+import type { Week } from '@/lib/site';
+import { moduleOf, moduleColorVar, weekHref, scheduleOf, formatDate, STATUS_LABEL, pad } from '@/lib/site';
+import ModuleChip from './ModuleChip.astro';
+
+interface Props { week: Week; }
+const { week } = Astro.props;
+const m = moduleOf(week.data.module);
+const s = scheduleOf(week.data.week);
+const date = formatDate(s?.date);
+const statusLabel = s && s.status !== 'normal' ? STATUS_LABEL[s.status] : '';
+---
+<a
+  href={weekHref(week.data.week)}
+  data-week-date={s?.date}
+  class="week-card group relative flex h-full flex-col rounded-2xl border border-line bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-line-2 hover:shadow-lift"
+  style={`--mod:${moduleColorVar(m)}`}
+>
+  <span class="absolute inset-y-5 left-0 w-[3px] rounded-r bg-[var(--mod)]" aria-hidden="true"></span>
+  <div class="flex items-start justify-between gap-3">
+    <span class="font-mono text-2xl font-medium leading-none text-ink">{pad(week.data.week)}</span>
+    <div class="flex flex-col items-end gap-1 text-right">
+      <ModuleChip module={m} />
+      {date && <span class="font-mono text-[11px] text-ink-3">{date}</span>}
+    </div>
+  </div>
+  <h3 class="mt-4 text-[15px] font-semibold leading-snug text-ink group-hover:text-brand">{week.data.title}</h3>
+  <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-2">{week.data.description}</p>
+  <div class="mt-auto flex flex-wrap items-center gap-2 pt-4 text-[11px] font-medium">
+    {week.data.exam && <span class="rounded-md bg-accent-soft px-2 py-0.5 text-accent">Exam</span>}
+    {statusLabel && !week.data.exam && <span class="rounded-md bg-paper-2 px-2 py-0.5 text-ink-2">{statusLabel}</span>}
+    {week.data.lab && <span class="rounded-md bg-brand-soft px-2 py-0.5 font-mono text-brand">+ lab</span>}
+    {week.data.status === 'ready' && <span class="rounded-md bg-true-soft px-2 py-0.5 text-true">Notes ready</span>}
+    <span class="ml-auto text-ink-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
+  </div>
+</a>

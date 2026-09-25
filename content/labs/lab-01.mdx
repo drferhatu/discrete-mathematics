@@ -1,0 +1,208 @@
+---
+lab: 1
+week: 2
+title: "Truth-Table Engine"
+description: "Write the connectives in Python, generate every row of a truth table, and build a tool that decides tautologies, contradictions and equivalences."
+assignment: lab01
+status: open
+acceptUrl: ""
+due: "2026-10-04 23:59"
+duration: "75 min + finish at home"
+points: 10
+files: ["truth.py"]
+topics: ["connectives", "itertools.product", "tautology", "equivalence"]
+notebook: { file: "labs/templates/lab01/lab01.ipynb", title: "Lab 1 · Explore: truth tables, explosions and a famous equivalence" }
+---
+
+## Goal
+
+By the end of this lab you have a small **truth-table engine** in `truth.py`: give it any formula as a Python function and it prints the table, tells you whether the formula is a tautology, contradiction or contingency, and checks whether two formulas are equivalent. It is the playground on the [week 2 page](/weeks/week-02), rebuilt by you.
+
+> [!note] You can start without the instructor
+> Everything you need is on this page. Work top to bottom. Ask your neighbor first, then the instructor. If one step blocks you for more than 10 minutes, write down the exact error message and go on to the next task.
+
+> [!warning] First lab? Do the setup first
+> You need a GitHub account and must have accepted the invitation to the course organization. If you have not, follow the [lab setup guide](/guides/lab-setup) (10 minutes), then come back here.
+
+## Steps
+
+<Step n={1} title="Accept the lab on Classroom 50" time="2 min" id="accept">
+
+1. Open [classroom50.org](https://classroom50.org) and click **Sign in with GitHub**.
+2. Open the organization **FiratUniversity-IJDP-SoftEng**, then the classroom **dm-2026**, then click **View assignments**.
+3. Find **lab01 · Truth-Table Engine** and click **Accept assignment**, then **Accept assignment** again on the next page.
+4. Wait for the checklist to finish, then click **Open repository**.
+
+You now own a private repository called `dm-2026-lab01-yourusername`. Only you and the instructor can see it.
+
+</Step>
+
+<Step n={2} title="Open it in Codespaces" time="2–3 min the first time" id="codespace">
+
+On your repository page on GitHub:
+
+1. Click the green **Code** button.
+2. Choose the **Codespaces** tab.
+3. Click **Create codespace on main**.
+
+A VS Code editor opens in your browser. The first start takes a minute or two while Python and the tests are installed; watch the terminal at the bottom until it is ready.
+
+> [!tip] Next time
+> Your codespace is saved. Go to [github.com/codespaces](https://github.com/codespaces) and click it to continue where you left off.
+
+</Step>
+
+<Step n={3} title="Look around and run the checks once" time="3 min" id="look">
+
+In the file explorer on the left you see:
+
+| File | What it is |
+|---|---|
+| `truth.py` | **your work**: every function marked `TODO` |
+| `lab01.ipynb` | playground notebook, not graded |
+| `check.py` | the friendly test runner |
+| `tests/` | the tests the autograder runs (do not edit) |
+
+In the terminal, run the checks before writing any code:
+
+<Terminal cmd="python check.py" out={`:| implies(p, q) matches the truth table of p → q
+    not implemented yet (still raises NotImplementedError)
+...
+0/21 checks passed`} />
+
+Every check shows `:|` because nothing is implemented yet. Your job is to turn them all into `:)`.
+
+> [!note] If you see “pytest is not installed”
+> Run `pip install -r requirements.txt` once, then run `python check.py` again.
+
+</Step>
+
+<Step n={4} title="Part A: the connectives" time="10 min" id="part-a">
+
+Open `truth.py`. Python has `not`, `and` and `or`. Write `implies`, `iff` and `xor`. Replace each `raise NotImplementedError` with a `return` statement.
+
+Use the lecture: $p \to q$ is false **only** when $p$ is true and $q$ is false, so it equals $\neg p \lor q$. For booleans, $p \leftrightarrow q$ is “same value” and $p \oplus q$ is “different value”.
+
+<Terminal cmd="python check.py" out={`:) implies(p, q) matches the truth table of p → q
+:) iff(p, q) matches the truth table of p ↔ q
+:) xor(p, q) matches the truth table of p ⊕ q`} />
+
+</Step>
+
+<Step n={5} title="Part B: every row" time="10 min" id="part-b">
+
+`rows(n)` returns every assignment of `n` variables as a list of tuples, `True` before `False`, the last variable changing fastest. For two variables:
+
+```python
+rows(2) == [(True, True), (True, False), (False, True), (False, False)]
+```
+
+`itertools.product` (already imported) does exactly this. Try it in the terminal first:
+
+<Terminal cmd={'python -c "from itertools import product; print(list(product([True, False], repeat=2)))"'} />
+
+Watch out: `product` returns an iterator, and the function must return a **list**. And what should `rows(0)` be? One row with no variables, `[()]`. Check that `product` agrees.
+
+</Step>
+
+<Step n={6} title="Part C: tables and verdicts" time="20 min" id="part-c">
+
+A formula is a Python function. For example `lambda p, q: implies(p, q)` takes two booleans and returns one. To evaluate it on a row (a tuple), unpack the tuple: `f(*row)`.
+
+Write, in this order, reusing each function in the next:
+
+1. `truth_table(f, n)`: a list of `(row, f(*row))` pairs, for every row of `rows(n)`.
+2. `is_tautology`: true in **every** row. Python's `all()` is ∀.
+3. `is_satisfiable`: true in **at least one** row. Python's `any()` is ∃. (You will meet ∀ and ∃ again in [week 4](/weeks/week-04).)
+4. `is_contradiction`: true in **no** row.
+5. `equivalent(f, g, n)`: same value in every row.
+6. `count_true(f, n)`: how many rows are true.
+
+> [!try] Think before you code
+> Can you write `is_contradiction` in one line using `is_satisfiable`? Can you write `equivalent` using `is_tautology` and `iff`?
+
+</Step>
+
+<Step n={7} title="Part D: pretty printing" time="10 min" id="part-d">
+
+`format_table(f, names, label)` returns the table as **one string**. The format must match exactly, because the autograder compares strings:
+
+```text
+p q | p∧q
+1 1 | 1
+1 0 | 0
+0 1 | 0
+0 0 | 0
+```
+
+Values separated by one space, the result after `" | "`, lines joined with `"\n"`, no trailing newline. Tips: `" ".join(...)`, and `"1" if v else "0"`.
+
+Then run the demo at the bottom of the file:
+
+<Terminal cmd="python truth.py" out={`p q | p→q
+1 1 | 1
+1 0 | 0
+0 1 | 1
+0 0 | 1
+
+(p → q) ↔ (¬q → ¬p) is a tautology: True
+(p → q) ↔ (q → p)   is a tautology: False`} />
+
+You just proved, by exhaustion, that the contrapositive is equivalent and the converse is not.
+
+</Step>
+
+<Step n={8} title="Part E: English to Python" time="10 min" id="part-e">
+
+Let $p$: “the server is overloaded”, $q$: “the request is served from cache”, $r$: “the response is slow”. Translate each sentence into a Python expression over `p`, `q`, `r`. You may use your own `implies`.
+
+1. `spec1`: The response is slow **only if** the server is overloaded and the request is not served from cache.
+2. `spec2`: The request is served from cache **unless** the server is overloaded.
+3. `spec3`: **Neither** is the server overloaded **nor** is the response slow.
+
+These are the translation exercises from the lecture. If a check fails, look at the week 2 notes on “only if” and “unless”.
+
+</Step>
+
+<Step n={9} title="Submit" time="2 min" id="submit">
+
+When `python check.py` shows `21/21 checks passed` (or when you have done what you can), save your work to GitHub. **Every push is graded.**
+
+<Terminal lines={['git add -A', 'git commit -m "Lab 1"', 'git push']} />
+
+Prefer buttons? Use the **Source Control** icon on the left of VS Code: type a message, click **Commit**, then **Sync Changes**.
+
+About a minute after the push:
+
+1. On your repository page, look under **Releases** on the right. The newest `submit/…` release shows your score and a table of passed and failed tests.
+2. Or on [classroom50.org](https://classroom50.org), open the assignment and click **My submission**.
+
+You can push as many times as you like before the deadline; the latest submission counts.
+
+</Step>
+
+## Explore: the notebook
+
+`lab01.ipynb` is not graded. It shows why truth tables explode ($2^n$ rows), counts how many different truth tables exist, and plays with logic on bits. Open it in your codespace (pick the Python kernel when asked) or in Colab with the button below.
+
+<NotebookEmbed file="labs/templates/lab01/lab01.ipynb" title="Lab 1 · Explore notebook" />
+
+## Challenges (optional, not graded)
+
+1. **Parser.** Write `parse("(p -> q) & ~p")` that turns a string into a Python function, so your engine works on typed formulas like the playground on the week page.
+2. **Minimal formula.** For a given table, output a formula that produces it (hint: one `and`-term per true row, joined with `or`, called the *disjunctive normal form*).
+3. **Bits.** Write `bit_and(a, b)`, `bit_or`, `bit_xor` for bit strings of equal length like `"0110"` without using `&`, `|`, `^`.
+
+## Troubleshooting
+
+> [!note] “This assignment isn't available to you” or “Not a member yet”
+> You have not accepted the organization invitation. Check your email (and spam) for an invitation from **FiratUniversity-IJDP-SoftEng**, accept it, then refresh classroom50.org. See the [setup guide](/guides/lab-setup#troubleshooting).
+
+> [!note] `git push` says “rejected” or “fetch first”
+> Someone (usually Classroom 50 itself) added a commit to your repository. Run `git pull`, then `git push` again.
+
+> [!note] My score did not appear
+> Open the **Actions** tab of your repository to watch the grading run. If it is still yellow, wait a minute. If it is red, click it and read the log, or show it to the instructor.
+
+> [!note] `SyntaxError` or `IndentationError`
+> Python found invalid code before running any test. Read the line number in the message, open that line, and look for a missing `:`, parenthesis or wrong indentation. `python truth.py` shows the error most clearly.

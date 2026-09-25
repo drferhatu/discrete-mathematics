@@ -1,0 +1,21 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SectionHeading from '@/components/SectionHeading.astro';
+import { href } from '@/lib/site';
+const pf = href('/pagefind/');
+---
+<BaseLayout title="Search" description="Search the course: concepts, weeks, labs.">
+  <Fragment slot="head"><link rel="stylesheet" href={pf + 'pagefind-ui.css'} /></Fragment>
+  <div class="wrap-narrow py-14 md:py-20" data-pagefind-ignore>
+    <SectionHeading eyebrow="Search" title="Find anything" lede="Try: contrapositive, tautology, De Morgan, pigeonhole, bijection, induction, graph coloring." />
+    <div id="search" class="mt-8"></div>
+    <p class="mt-6 text-sm text-ink-3">The search index is built with the site; it does not work on the local dev server.</p>
+  </div>
+  <script is:inline define:vars={{ pf }}>
+    const s = document.createElement('script');
+    s.src = pf + 'pagefind-ui.js';
+    s.onload = () => new PagefindUI({ element: '#search', showSubResults: true, showImages: false, autofocus: true });
+    s.onerror = () => { document.getElementById('search').innerHTML = '<p>Search index not found. It is created by npm run build.</p>'; };
+    document.head.appendChild(s);
+  </script>
+</BaseLayout>

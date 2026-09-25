@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://drferhatu.github.io/discrete-mathematics/sitemap-index.xml

@@ -1,0 +1,27 @@
+// @ts-check
+import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
+import mdx from '@astrojs/mdx';
+import tailwindcss from '@tailwindcss/vite';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import remarkCallouts from './src/lib/remark-callouts.mjs';
+import rehypeBaseLinks from './src/lib/rehype-base-links.mjs';
+
+// GitHub Pages: https://drferhatu.github.io/discrete-mathematics/
+// For a custom domain, build with SITE_URL and BASE_PATH=/ environment variables.
+const site = process.env.SITE_URL ?? 'https://drferhatu.github.io';
+const base = process.env.BASE_PATH ?? '/discrete-mathematics';
+
+export default defineConfig({
+  site,
+  base,
+  trailingSlash: 'ignore',
+  integrations: [mdx(), sitemap()],
+  markdown: {
+    remarkPlugins: [remarkMath, remarkCallouts],
+    rehypePlugins: [[rehypeKatex, { strict: false }], [rehypeBaseLinks, { base }]],
+    shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' }, wrap: true },
+  },
+  vite: { plugins: [tailwindcss()] },
+});

@@ -1,0 +1,15 @@
+---
+/** Numbered step card for lab instructions: <Step n={1} title="Open cs50.dev" time="2 min">…</Step> */
+interface Props { n: number | string; title: string; time?: string; id?: string; }
+const { n, title, time, id } = Astro.props;
+---
+<section class="step relative !mt-10 grid grid-cols-[2.5rem_1fr] gap-x-4" id={id}>
+  <span class="grid size-10 !mt-0 place-items-center rounded-xl bg-ink font-mono text-sm font-semibold text-paper">{n}</span>
+  <div class="min-w-0 !mt-0">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 class="!m-0 text-lg font-semibold tracking-tight text-ink">{title}</h3>
+      {time && <span class="font-mono text-[11px] text-ink-3">⏱ {time}</span>}
+    </div>
+    <div class="step-body prose-lesson !mt-2 !text-[1rem]"><slot /></div>
+  </div>
+</section>

@@ -1,0 +1,44 @@
+---
+/**
+ * Semester map: six modules, fifteen weeks. Each week node links to its page.
+ */
+import { modules, moduleColorVar, weekHref, scheduleOf, formatDate, labHref, pad, type Week } from '@/lib/site';
+interface Props { weeks: Week[]; }
+const { weeks } = Astro.props;
+const byNum = new Map(weeks.map((w) => [w.data.week, w]));
+---
+<ol class="relative space-y-12 border-l border-line pl-6 sm:pl-10">
+  {modules.map((m, i) => (
+    <li class="relative" style={`--mod:${moduleColorVar(m)}`} id={m.slug}>
+      <span class="absolute -left-[calc(1.5rem+7px)] top-2 size-3.5 rounded-sm border-2 border-paper bg-[var(--mod)] ring-4 ring-[color-mix(in_srgb,var(--mod)_18%,transparent)] sm:-left-[calc(2.5rem+7px)]" aria-hidden="true"></span>
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span class="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-[var(--mod)]">Module {i + 1}</span>
+        <span class="font-mono text-xs text-ink-3">weeks {m.weeks[0]}–{m.weeks.at(-1)}</span>
+        <span class="font-mono text-sm text-ink-3">{m.glyph}</span>
+      </div>
+      <h3 class="display mt-1 text-3xl text-ink">{m.title}</h3>
+      <p class="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-ink-2">{m.summary}</p>
+      <ul class="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {m.weeks.map((n) => {
+          const w = byNum.get(n);
+          const s = scheduleOf(n);
+          return (
+            <li>
+              <a href={weekHref(n)} data-week-date={s?.date} class="week-node group flex h-full items-start gap-3 rounded-xl border border-line bg-card p-3 transition-colors hover:border-[var(--mod)]">
+                <span class="grid size-9 shrink-0 place-items-center rounded-lg font-mono text-sm font-semibold text-white bg-[var(--mod)] dark:text-paper">{pad(n)}</span>
+                <span class="min-w-0">
+                  <span class="block text-[13.5px] font-semibold leading-snug text-ink group-hover:text-brand">{w?.data.title ?? `Week ${n}`}</span>
+                  <span class="mt-1 flex flex-wrap gap-x-2 font-mono text-[11px] text-ink-3">
+                    {s?.date && <span>{formatDate(s.date)}</span>}
+                    {w?.data.exam && <span class="font-semibold text-accent">exam</span>}
+                    {w?.data.lab && <span class="text-brand">+ {w.data.lab}</span>}
+                  </span>
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </li>
+  ))}
+</ol>

@@ -1,0 +1,216 @@
+---
+/**
+ * Live truth-table playground. Type a formula, get the full truth table,
+ * a verdict (tautology / contradiction / contingency) and the Python equivalent.
+ * Works with plain ASCII (->, <->, ~, &, |, ^) and with logic symbols.
+ */
+interface Props { initial?: string; compact?: boolean; id?: string; }
+const { initial = '(p -> q) <-> (~q -> ~p)', compact = false, id = 'lp' } = Astro.props;
+const presets = [
+  { label: 'contrapositive', f: '(p -> q) <-> (~q -> ~p)' },
+  { label: 'converse?', f: '(p -> q) <-> (q -> p)' },
+  { label: 'De Morgan', f: '~(p & q) <-> (~p | ~q)' },
+  { label: 'excluded middle', f: 'p | ~p' },
+  { label: 'xor', f: 'p ^ q' },
+  { label: 'three vars', f: '(p & q) -> r' },
+];
+---
+<div class="logic-playground card overflow-hidden shadow-lift" data-lp data-initial={initial} id={id}>
+  <div class="flex items-center gap-2 border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="size-2.5 rounded-full bg-false/70" aria-hidden="true"></span>
+    <span class="size-2.5 rounded-full bg-accent/60" aria-hidden="true"></span>
+    <span class="size-2.5 rounded-full bg-true/70" aria-hidden="true"></span>
+    <span class="ml-2 font-mono text-[11px] text-ink-3">logic playground · truth_table.py</span>
+  </div>
+  <div class="p-4 sm:p-5">
+    <label for={`${id}-input`} class="eyebrow">Type a proposition</label>
+    <div class="mt-2 flex items-center gap-2 rounded-lg border border-line-2 bg-paper px-3 focus-within:border-brand">
+      <span class="font-mono text-sm text-accent" aria-hidden="true">›</span>
+      <input id={`${id}-input`} data-lp-input type="text" spellcheck="false" autocomplete="off" autocapitalize="off"
+        class="w-full bg-transparent py-2.5 font-mono text-[15px] text-ink outline-none placeholder:text-ink-3" value={initial}
+        aria-describedby={`${id}-help`} />
+    </div>
+    <p id={`${id}-help`} class="mt-2 font-mono text-[11px] leading-relaxed text-ink-3">
+      <span class="text-ink-2">~</span> not · <span class="text-ink-2">&amp;</span> and · <span class="text-ink-2">|</span> or · <span class="text-ink-2">^</span> xor · <span class="text-ink-2">-&gt;</span> implies · <span class="text-ink-2">&lt;-&gt;</span> iff · variables p q r s …
+    </p>
+    {!compact && (
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        {presets.map((p) => (
+          <button type="button" data-lp-preset={p.f} class="rounded-md border border-line px-2 py-1 font-mono text-[11px] text-ink-2 transition-colors hover:border-brand hover:text-brand">{p.label}</button>
+        ))}
+      </div>
+    )}
+
+    <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1" aria-live="polite">
+      <span data-lp-verdict class="rounded-md px-2 py-1 font-mono text-xs font-semibold"></span>
+      <span data-lp-summary class="font-mono text-xs text-ink-3"></span>
+    </div>
+    <div class="mt-3 max-h-[300px] overflow-auto rounded-lg border border-line">
+      <table data-lp-table class="w-full border-collapse text-center font-mono text-[13px]"></table>
+    </div>
+    <p class="mt-3 font-mono text-[11px] text-ink-3">python ›&nbsp;<code data-lp-python class="text-ink-2"></code></p>
+  </div>
+</div>
+
+<script>
+  type Node =
+    | { t: 'var'; name: string }
+    | { t: 'const'; v: boolean }
+    | { t: 'not'; a: Node }
+    | { t: 'bin'; op: 'and' | 'or' | 'xor' | 'imp' | 'iff'; a: Node; b: Node };
+
+  const OPS: [RegExp, string][] = [
+    [/^(<->|<=>|↔|⇔|iff\b)/, 'iff'],
+    [/^(->|=>|→|⇒|implies\b)/, 'imp'],
+    [/^(&&|&|∧|and\b)/, 'and'],
+    [/^(\|\||\||∨|or\b)/, 'or'],
+    [/^(\^|⊕|xor\b)/, 'xor'],
+    [/^(~|!|¬|not\b)/, 'not'],
+    [/^\(/, '('],
+    [/^\)/, ')'],
+  ];
+
+  function tokenize(src: string): string[] {
+    const out: string[] = [];
+    let s = src.trim();
+    while (s.length) {
+      if (/^\s/.test(s)) { s = s.trimStart(); continue; }
+      let hit = false;
+      for (const [re, name] of OPS) {
+        const m = s.match(re);
+        if (m) { out.push(name); s = s.slice(m[0].length); hit = true; break; }
+      }
+      if (hit) continue;
+      const c = s.match(/^(true|false|T|F|1|0)\b/);
+      if (c) { out.push(/^(true|T|1)$/.test(c[1]) ? '#1' : '#0'); s = s.slice(c[0].length); continue; }
+      const v = s.match(/^[a-z][a-z0-9_]*/);
+      if (v) { out.push('$' + v[0]); s = s.slice(v[0].length); continue; }
+      throw new Error(`Unexpected “${s[0]}”`);
+    }
+    return out;
+  }
+
+  // precedence: not > and > xor > or > imp (right-assoc) > iff
+  function parse(tokens: string[]): Node {
+    let i = 0;
+    const peek = () => tokens[i];
+    const eat = (x: string) => { if (tokens[i] !== x) throw new Error(`Expected “${x === ')' ? ')' : x}”`); i++; };
+    const iff = (): Node => { let a = imp(); while (peek() === 'iff') { i++; a = { t: 'bin', op: 'iff', a, b: imp() }; } return a; };
+    const imp = (): Node => { const a = or(); if (peek() === 'imp') { i++; return { t: 'bin', op: 'imp', a, b: imp() }; } return a; };
+    const or = (): Node => { let a = xor(); while (peek() === 'or') { i++; a = { t: 'bin', op: 'or', a, b: xor() }; } return a; };
+    const xor = (): Node => { let a = and(); while (peek() === 'xor') { i++; a = { t: 'bin', op: 'xor', a, b: and() }; } return a; };
+    const and = (): Node => { let a = not(); while (peek() === 'and') { i++; a = { t: 'bin', op: 'and', a, b: not() }; } return a; };
+    const not = (): Node => { if (peek() === 'not') { i++; return { t: 'not', a: not() }; } return atom(); };
+    const atom = (): Node => {
+      const k = peek();
+      if (k === undefined) throw new Error('Formula ends too early');
+      if (k === '(') { i++; const n = iff(); eat(')'); return n; }
+      if (k.startsWith('$')) { i++; return { t: 'var', name: k.slice(1) }; }
+      if (k.startsWith('#')) { i++; return { t: 'const', v: k === '#1' }; }
+      throw new Error(`Unexpected operator`);
+    };
+    if (!tokens.length) throw new Error('Type a formula');
+    const n = iff();
+    if (i < tokens.length) throw new Error(tokens[i] === ')' ? 'Unbalanced “)”' : 'Missing operator between terms');
+    return n;
+  }
+
+  const vars = (n: Node, acc = new Set<string>()): Set<string> => {
+    if (n.t === 'var') acc.add(n.name);
+    else if (n.t === 'not') vars(n.a, acc);
+    else if (n.t === 'bin') { vars(n.a, acc); vars(n.b, acc); }
+    return acc;
+  };
+
+  const ev = (n: Node, env: Record<string, boolean>): boolean => {
+    switch (n.t) {
+      case 'var': return env[n.name];
+      case 'const': return n.v;
+      case 'not': return !ev(n.a, env);
+      case 'bin': {
+        const a = ev(n.a, env), b = ev(n.b, env);
+        return n.op === 'and' ? a && b : n.op === 'or' ? a || b : n.op === 'xor' ? a !== b : n.op === 'imp' ? !a || b : a === b;
+      }
+    }
+  };
+
+  const SYM = { and: '∧', or: '∨', xor: '⊕', imp: '→', iff: '↔' } as const;
+  const show = (n: Node, top = true): string => {
+    if (n.t === 'var') return n.name;
+    if (n.t === 'const') return n.v ? 'T' : 'F';
+    if (n.t === 'not') return '¬' + show(n.a, false);
+    const s = `${show(n.a, false)} ${SYM[n.op]} ${show(n.b, false)}`;
+    return top ? s : `(${s})`;
+  };
+  const py = (n: Node): string => {
+    if (n.t === 'var') return n.name;
+    if (n.t === 'const') return n.v ? 'True' : 'False';
+    if (n.t === 'not') return `not ${py(n.a)}`;
+    const a = py(n.a), b = py(n.b);
+    switch (n.op) {
+      case 'and': return `(${a} and ${b})`;
+      case 'or': return `(${a} or ${b})`;
+      case 'xor': return `(${a} != ${b})`;
+      case 'imp': return `((not ${a}) or ${b})`;
+      case 'iff': return `(${a} == ${b})`;
+    }
+  };
+
+  // sub-formulas for intermediate columns (binary nodes only, innermost first, max 4)
+  const subs = (n: Node, acc: Node[] = []): Node[] => {
+    if (n.t === 'not') subs(n.a, acc);
+    if (n.t === 'bin') { subs(n.a, acc); subs(n.b, acc); acc.push(n); }
+    return acc;
+  };
+
+  const cell = (v: boolean, strong = false) =>
+    `<td class="px-3 py-1.5 border-b border-line"><span class="tv ${v ? 'tv-1' : 'tv-0'}${strong ? ' ring-1 ring-current' : ''}">${v ? 1 : 0}</span></td>`;
+
+  function render(root: HTMLElement) {
+    const input = root.querySelector<HTMLInputElement>('[data-lp-input]')!;
+    const table = root.querySelector<HTMLTableElement>('[data-lp-table]')!;
+    const verdict = root.querySelector<HTMLElement>('[data-lp-verdict]')!;
+    const summary = root.querySelector<HTMLElement>('[data-lp-summary]')!;
+    const python = root.querySelector<HTMLElement>('[data-lp-python]')!;
+    try {
+      const ast = parse(tokenize(input.value));
+      const vs = [...vars(ast)].sort();
+      if (vs.length > 6) throw new Error('Up to 6 variables (that is already 64 rows!)');
+      const inner = subs(ast).filter((x) => x !== ast).slice(-3);
+      const rows = 1 << vs.length;
+      let trues = 0;
+      let html = '<thead class="sticky top-0 bg-paper-2"><tr>' +
+        vs.map((v) => `<th class="px-3 py-2 font-semibold text-ink border-b border-line-2">${v}</th>`).join('') +
+        inner.map((s) => `<th class="px-3 py-2 font-normal text-ink-3 border-b border-line-2 whitespace-nowrap">${show(s)}</th>`).join('') +
+        `<th class="px-3 py-2 font-semibold text-brand border-b border-line-2 whitespace-nowrap">${show(ast)}</th></tr></thead><tbody>`;
+      for (let r = 0; r < rows; r++) {
+        const env: Record<string, boolean> = {};
+        vs.forEach((v, k) => (env[v] = !((r >> (vs.length - 1 - k)) & 1)));
+        const val = ev(ast, env);
+        if (val) trues++;
+        html += '<tr>' + vs.map((v) => cell(env[v])).join('') + inner.map((s) => cell(ev(s, env))).join('') + cell(val, true) + '</tr>';
+      }
+      table.innerHTML = html + '</tbody>';
+      const kind = trues === rows ? 'tautology' : trues === 0 ? 'contradiction' : 'contingency';
+      verdict.textContent = kind === 'tautology' ? '✓ tautology (always true)' : kind === 'contradiction' ? '✗ contradiction (always false)' : '~ contingency';
+      verdict.className = 'rounded-md px-2 py-1 font-mono text-xs font-semibold ' +
+        (kind === 'tautology' ? 'bg-true-soft text-true' : kind === 'contradiction' ? 'bg-false-soft text-false' : 'bg-brand-soft text-brand');
+      summary.textContent = `${vs.length} variable${vs.length === 1 ? '' : 's'} → 2^${vs.length} = ${rows} rows · true in ${trues}`;
+      python.textContent = py(ast);
+      input.setAttribute('aria-invalid', 'false');
+    } catch (e) {
+      verdict.textContent = (e as Error).message;
+      verdict.className = 'rounded-md px-2 py-1 font-mono text-xs font-semibold bg-accent-soft text-accent';
+      summary.textContent = '';
+      input.setAttribute('aria-invalid', 'true');
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-lp]').forEach((root) => {
+    const input = root.querySelector<HTMLInputElement>('[data-lp-input]')!;
+    input.addEventListener('input', () => render(root));
+    root.querySelectorAll<HTMLButtonElement>('[data-lp-preset]').forEach((b) =>
+      b.addEventListener('click', () => { input.value = b.dataset.lpPreset!; render(root); input.focus(); }));
+    render(root);
+  });
+</script>

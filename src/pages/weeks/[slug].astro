@@ -1,0 +1,144 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Toc from '@/components/Toc.astro';
+import WeekPager from '@/components/WeekPager.astro';
+import ModuleChip from '@/components/ModuleChip.astro';
+import LogicPlayground from '@/components/LogicPlayground.astro';
+import Terminal from '@/components/Terminal.astro';
+import NotebookEmbed from '@/components/NotebookEmbed.astro';
+import { render, getCollection } from 'astro:content';
+import { getWeeksSorted, moduleOf, moduleColorVar, scheduleOf, formatDate, STATUS_LABEL, href, weekSlug, labHref, pad } from '@/lib/site';
+
+export async function getStaticPaths() {
+  const weeks = await getWeeksSorted();
+  return weeks.map((w, i) => ({
+    params: { slug: weekSlug(w.data.week) },
+    props: { week: w, prev: weeks[i - 1], next: weeks[i + 1] },
+  }));
+}
+const { week, prev, next } = Astro.props;
+const d = week.data;
+const { Content, headings } = await render(week);
+const m = moduleOf(d.module);
+const s = scheduleOf(d.week);
+const dateLong = formatDate(s?.date, true);
+const statusLabel = s && s.status !== 'normal' ? STATUS_LABEL[s.status] : '';
+const lab = d.lab ? (await getCollection('labs')).find((l) => l.id === d.lab) : undefined;
+const tocBefore = [{ slug: 'objectives', text: 'Learning objectives' }, ...(d.wow ? [{ slug: 'wow', text: 'The wow moment' }] : [])];
+const tocAfter = [
+  ...(d.industry.length ? [{ slug: 'industry', text: 'In industry' }] : []),
+  ...(lab ? [{ slug: 'lab', text: `Lab ${lab.data.lab}` }] : []),
+  ...(d.resources.length ? [{ slug: 'go-deeper', text: 'Go deeper' }] : []),
+];
+---
+<BaseLayout title={`Week ${d.week}: ${d.title}`} description={d.description} ogType="article">
+  <header class="relative overflow-hidden border-b border-line" style={`--mod:${moduleColorVar(m)}`}>
+    <div class="grid-paper grid-fade pointer-events-none absolute inset-0" aria-hidden="true"></div>
+    <div class="wrap relative py-12 md:py-16">
+      <nav aria-label="Breadcrumb" class="flex flex-wrap items-center gap-2 font-mono text-xs text-ink-3">
+        <a href={href('/weeks')} class="hover:text-ink">weeks</a><span aria-hidden="true">/</span>
+        <a href={href(`/schedule#${m.slug}`)} class="hover:text-ink">{m.slug}</a><span aria-hidden="true">/</span>
+        <span>{weekSlug(d.week)}</span>
+      </nav>
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span class="grid h-12 min-w-12 place-items-center rounded-xl bg-[var(--mod)] px-3 font-mono text-xl font-semibold text-white dark:text-paper">{pad(d.week)}</span>
+        <ModuleChip module={m} size="md" />
+        {dateLong && <span class="font-mono text-sm text-ink-2">Monday, {dateLong}</span>}
+        {d.exam && <span class="rounded-md bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">Exam</span>}
+        {statusLabel && !d.exam && <span class="rounded-md bg-paper-2 px-2.5 py-1 text-xs font-semibold text-ink-2">{statusLabel}</span>}
+      </div>
+      <h1 class="display mt-5 max-w-4xl text-4xl leading-[1.02] text-ink sm:text-5xl md:text-6xl">{d.title}</h1>
+      <p class="mt-4 max-w-2xl text-lg text-ink-2">{d.description}</p>
+      <div class="mt-6 flex flex-wrap gap-2">
+        {d.reading && <span class="rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink-2"><span class="eyebrow mr-2">Read</span>{d.reading}</span>}
+        {d.slides.map((sl) => <a href={href(`/slides/${sl.file}`)} target="_blank" class="rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium text-ink hover:border-ink">⎙ {sl.title}</a>)}
+        {lab && <a href={labHref(lab.id)} class="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper hover:bg-brand"><span class="font-mono text-[#ffb08a]">&gt;_</span> Lab {lab.data.lab}: {lab.data.title}</a>}
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap grid grid-cols-1 gap-12 py-12 lg:grid-cols-[1fr_230px]">
+    <article class="prose-lesson min-w-0 max-w-3xl" data-reading-progress>
+      {(d.changeNote || (s?.note && s.status !== 'normal')) && (
+        <aside class="callout callout-warn"><p class="callout-title">Schedule note</p><p>{d.changeNote || s?.note}</p></aside>
+      )}
+      {d.status === 'draft' && (
+        <aside class="callout callout-note"><p class="callout-title">Outline</p><p>Full notes for this week are published before the lecture. The objectives, topics and lab plan below are already final.</p></aside>
+      )}
+
+      <section aria-labelledby="objectives">
+        <h2 id="objectives" class="!mt-8 !border-0 !pt-0">Learning objectives</h2>
+        <p>By the end of this week you can:</p>
+        <ul class="!list-none !pl-0 !space-y-2.5">
+          {d.objectives.map((o, i) => (
+            <li class="flex gap-3 rounded-xl border border-line bg-card p-3.5" style={`--mod:${moduleColorVar(m)}`}>
+              <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-[var(--mod)] font-mono text-xs font-bold text-white dark:text-paper">{i + 1}</span>
+              <span class="text-ink">{o}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {d.wow && (
+        <section aria-labelledby="wow" class="not-prose relative mt-12 overflow-hidden rounded-2xl bg-ink p-6 text-paper sm:p-8">
+          <div class="grid-paper pointer-events-none absolute inset-0 opacity-40" aria-hidden="true"></div>
+          <p class="relative font-mono text-[11px] uppercase tracking-[0.16em] text-[#ffb08a]">★ the wow moment</p>
+          <h2 id="wow" class="display relative !mt-2 !border-0 !pt-0 !text-3xl leading-tight !text-paper md:!text-4xl">{d.wow.title}</h2>
+          <p class="relative !mt-3 leading-relaxed !text-paper/80">{d.wow.text}</p>
+        </section>
+      )}
+
+      <Content components={{ LogicPlayground, Terminal, NotebookEmbed }} />
+
+      {d.industry.length > 0 && (
+        <section>
+          <h2 id="industry">In industry</h2>
+          <ul class="!list-none !pl-0 grid gap-3 sm:grid-cols-2">
+            {d.industry.map((x) => (
+              <li class="rounded-xl border border-line bg-card p-4">
+                <p class="font-semibold text-ink">{x.t}</p>
+                <p class="mt-1 text-[15px] leading-relaxed">{x.d}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {lab && (
+        <section>
+          <h2 id="lab">Lab {lab.data.lab}: {lab.data.title}</h2>
+          <a href={labHref(lab.id)} class="not-prose group mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-card p-5 !no-underline hover:border-ink">
+            <span class="min-w-0">
+              <span class="block text-ink-2">{lab.data.description}</span>
+              <span class="mt-2 block font-mono text-xs text-ink-3">{lab.data.duration} · {lab.data.points} points · {lab.data.status === 'open' ? 'open now' : lab.data.status}</span>
+            </span>
+            <span class="btn-primary">Open lab instructions →</span>
+          </a>
+        </section>
+      )}
+
+      {d.resources.length > 0 && (
+        <section>
+          <h2 id="go-deeper">Go deeper</h2>
+          <ul>{d.resources.map((r) => <li><a href={r.url} rel="noopener" target="_blank">{r.title}</a>{r.note && <span class="text-ink-3"> · {r.note}</span>}</li>)}</ul>
+        </section>
+      )}
+      {d.tags.length > 0 && (
+        <p class="mt-10 flex flex-wrap gap-1.5 text-xs"><span class="mr-1 text-ink-3">Tags:</span>{d.tags.map((t) => <span class="rounded-md bg-paper-2 px-2 py-0.5 font-mono text-ink-2">{t}</span>)}</p>
+      )}
+      <WeekPager prev={prev} next={next} />
+    </article>
+
+    <aside class="hidden lg:block">
+      <div class="sticky top-24 space-y-8">
+        <Toc headings={headings} extra={tocBefore} after={tocAfter} />
+        <div class="rounded-xl border border-line bg-card p-4 text-sm">
+          <p class="eyebrow mb-2">Module</p>
+          <p class="font-semibold text-ink">{m.title}</p>
+          <p class="mt-1 font-mono text-xs text-ink-3">weeks {m.weeks[0]}–{m.weeks.at(-1)}</p>
+          <a href={href(`/schedule#${m.slug}`)} class="mt-3 inline-block text-xs font-semibold text-brand hover:underline">All weeks in this module →</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</BaseLayout>

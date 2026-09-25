@@ -1,0 +1,321 @@
+{
+  "title": "Discrete Mathematics",
+  "code": "YMT211",
+  "shortTitle": "Discrete Math",
+  "tagline": "The language computers think in.",
+  "university": "Fırat University",
+  "faculty": "Faculty of Technology",
+  "department": "Software Engineering",
+  "program": "UOLP (International Joint Degree Program), taught in English",
+  "semester": "Fall",
+  "academicYear": "2026–2027",
+  "language": "English",
+  "instructor": {
+    "name": "Assoc. Prof. Ferhat Uçar",
+    "email": "fucar@firat.edu.tr"
+  },
+  "meeting": {
+    "day": "Monday",
+    "time": "08:15–12:00",
+    "room": "B101 / YM LAB 2",
+    "format": "Part 1: lecture · Part 2: hands-on Python lab"
+  },
+  "channels": [
+    {
+      "name": "WhatsApp channel",
+      "note": "Urgent announcements",
+      "url": "https://whatsapp.com/channel/0029Va7485X6WaKnrgJdep2i"
+    },
+    {
+      "name": "Instagram · @docdrferhatucar.ai",
+      "note": "AI, software and course highlights",
+      "url": "https://www.instagram.com/docdrferhatucar.ai/"
+    }
+  ],
+  "classroom": {
+    "_note": "Classroom 50 settings. org = GitHub organization (Team plan), slug = classroom short name. Change here and every lab page updates.",
+    "org": "FiratUniversity-IJDP-SoftEng",
+    "slug": "dm-2026",
+    "web": "https://classroom50.org",
+    "editor": "https://github.com/codespaces"
+  },
+  "description": "Discrete Mathematics provides the foundational language and tools of computer science. Topics include logic and proof techniques, sets, functions and relations, sequences and cardinality, induction and recursion, counting, graphs and trees. The course emphasizes clear mathematical reasoning, writing precise proofs, and connecting theory to real software: data structures, databases, cryptography, networks, compilers and AI.",
+  "philosophy": {
+    "intro": "We approach Discrete Mathematics as a language for precise thinking. Conceptual understanding comes before rote manipulation; clear definitions and well-structured arguments come before speed. Every week you meet an idea on the board and then make it run in Python.",
+    "points": [
+      {
+        "t": "Clarity before formality",
+        "d": "Build intuition with concrete examples, then generalize and prove."
+      },
+      {
+        "t": "Every idea runs",
+        "d": "Each lecture is followed by a lab where the mathematics becomes code you test yourself."
+      },
+      {
+        "t": "Multiple proof strategies",
+        "d": "Direct, contrapositive, contradiction and induction, chosen to fit the problem."
+      },
+      {
+        "t": "Modeling and connection",
+        "d": "Use discrete structures to frame real problems in software, data, security and networks."
+      },
+      {
+        "t": "Productive struggle",
+        "d": "Challenge is expected. Feedback, collaboration and reflection turn confusion into insight."
+      },
+      {
+        "t": "Ethical scholarship",
+        "d": "Integrity in reasoning, attribution and reuse of ideas, including ideas produced with AI tools."
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "LO1",
+      "text": "Translate natural-language statements into propositional and predicate logic, and evaluate them with truth tables.",
+      "weeks": [
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "LO2",
+      "text": "Apply rules of inference and construct direct, contrapositive and contradiction proofs.",
+      "weeks": [
+        6,
+        7
+      ]
+    },
+    {
+      "id": "LO3",
+      "text": "Work fluently with sets, relations and functions, and use them to model data.",
+      "weeks": [
+        9,
+        10
+      ]
+    },
+    {
+      "id": "LO4",
+      "text": "Reason about sequences, sums and the cardinality of infinite sets.",
+      "weeks": [
+        11
+      ]
+    },
+    {
+      "id": "LO5",
+      "text": "Prove properties with mathematical induction and analyze recursive definitions and algorithm growth.",
+      "weeks": [
+        12
+      ]
+    },
+    {
+      "id": "LO6",
+      "text": "Solve counting problems with the product and sum rules, permutations, combinations and the pigeonhole principle.",
+      "weeks": [
+        13
+      ]
+    },
+    {
+      "id": "LO7",
+      "text": "Model problems with graphs and trees, and apply isomorphism, connectivity and coloring.",
+      "weeks": [
+        14,
+        15
+      ]
+    },
+    {
+      "id": "LO8",
+      "text": "Implement and test discrete-mathematics ideas in Python, and connect them to real software systems.",
+      "weeks": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ]
+    }
+  ],
+  "assessment": {
+    "components": [
+      {
+        "name": "Midterm exam",
+        "weight": 40,
+        "note": "In-class written exam. The official date is announced by the faculty."
+      },
+      {
+        "name": "Final",
+        "weight": 60,
+        "note": "Final grade = 85% final exam + 15% semester project."
+      }
+    ],
+    "finalSplit": [
+      {
+        "name": "Final exam",
+        "weight": 85
+      },
+      {
+        "name": "Semester project",
+        "weight": 15
+      }
+    ],
+    "labsNote": "Weekly labs are autograded for instant feedback. They are the practice ground for the exams and the project, and completion is tracked."
+  },
+  "policies": [
+    {
+      "t": "Late work",
+      "d": "Assignments submitted after the due date are penalized 10% per day, including weekends. Nothing is accepted more than five days late unless a documented medical or personal emergency is provided."
+    },
+    {
+      "t": "Academic integrity",
+      "d": "Cheating, plagiarism and submitting someone else's work as your own lead to disciplinary action, which can include a failing grade and university sanctions."
+    },
+    {
+      "t": "AI tools",
+      "d": "You may use AI assistants to explain concepts, generate practice problems and debug. You may not submit code or proofs you cannot explain line by line. In labs and project demos you may be asked to walk through your work."
+    },
+    {
+      "t": "Attendance and participation",
+      "d": "Regular attendance is crucial. If you cannot attend, email the instructor in advance."
+    },
+    {
+      "t": "Electronics",
+      "d": "Laptops and phones are for course work only. Anything that distracts others is not allowed."
+    },
+    {
+      "t": "Communication",
+      "d": "Official course communication is by email. Urgent announcements also go to the WhatsApp channel."
+    },
+    {
+      "t": "Accommodations",
+      "d": "If you need an accommodation for a disability or any other reason, contact the instructor as early as possible."
+    }
+  ],
+  "previousSite": {
+    "title": "Discrete Mathematics YMT211, 2025–2026 course site (Notion)",
+    "url": "https://ferhatucar.notion.site/discrete-mathematics"
+  },
+  "books": [
+    {
+      "title": "Discrete Mathematics and Its Applications, 8th ed.",
+      "author": "Kenneth H. Rosen",
+      "note": "Main textbook. Chapter numbers on the week pages refer to this book."
+    },
+    {
+      "title": "Discrete and Combinatorial Mathematics: An Applied Introduction, 5th ed.",
+      "author": "Ralph P. Grimaldi"
+    },
+    {
+      "title": "Mathematics for Computer Science",
+      "author": "Eric Lehman, Tom Leighton, Albert Meyer (2018)",
+      "url": "http://web.cs.hacettepe.edu.tr/~bbm205/mcs.pdf",
+      "note": "Free online."
+    },
+    {
+      "title": "A Course in Discrete Structures",
+      "author": "Rafael Pass, Wei-Lung Dustin Tseng",
+      "url": "https://www.cs.cornell.edu/~rafael/discmath.pdf",
+      "note": "Free online."
+    },
+    {
+      "title": "Building Blocks for Theoretical Computer Science",
+      "author": "Margaret M. Fleck",
+      "url": "http://mfleck.cs.illinois.edu/building-blocks/",
+      "note": "Free online."
+    },
+    {
+      "title": "Book of Proof, 3rd ed.",
+      "author": "Richard Hammack",
+      "url": "https://richardhammack.github.io/BookOfProof/",
+      "note": "Free online. Excellent for proof writing."
+    },
+    {
+      "title": "How to Prove It",
+      "author": "Daniel J. Velleman"
+    },
+    {
+      "title": "Proofs from THE BOOK, 6th ed.",
+      "author": "Martin Aigner, Günter M. Ziegler",
+      "note": "For the curious: the most beautiful proofs."
+    }
+  ],
+  "courses": [
+    {
+      "title": "BBM 205 Introduction to Discrete Mathematics",
+      "org": "Hacettepe University, CENG",
+      "url": "https://web.cs.hacettepe.edu.tr/~bbm205/",
+      "note": "The course we follow most closely."
+    },
+    {
+      "title": "CS 70 Discrete Mathematics and Probability Theory",
+      "org": "UC Berkeley",
+      "url": "https://www.eecs70.org/"
+    },
+    {
+      "title": "CSE 191 Introduction to Discrete Structures",
+      "org": "University at Buffalo",
+      "url": "https://cse.buffalo.edu/~epmikida/teaching/sp23/cse191/index.html"
+    },
+    {
+      "title": "CSE 191 class notes (older version)",
+      "org": "University at Buffalo",
+      "url": "https://cse.buffalo.edu/~xinhe/cse191/Classnotes/"
+    },
+    {
+      "title": "CS381 Introduction to Discrete Structures",
+      "org": "Old Dominion University",
+      "url": "https://www.cs.odu.edu/~toida/nerzic/content/web_course.html"
+    },
+    {
+      "title": "MAD 2104 Discrete Mathematics I",
+      "org": "Florida State University",
+      "url": "https://www.math.fsu.edu/~pkirby/mad2104/index.math.htm"
+    }
+  ],
+  "tools": [
+    {
+      "title": "GitHub Codespaces",
+      "url": "https://github.com/codespaces",
+      "note": "VS Code in the browser, opened straight from your lab repository. Our lab editor; free within your personal GitHub quota."
+    },
+    {
+      "title": "Classroom 50",
+      "url": "https://classroom50.org",
+      "note": "Where you accept labs and see your autograded scores."
+    },
+    {
+      "title": "cs50.dev",
+      "url": "https://cs50.dev",
+      "note": "Harvard CS50's free VS Code in the browser. Great for the exploration notebooks and practice; the graded labs use Codespaces."
+    },
+    {
+      "title": "Python documentation",
+      "url": "https://docs.python.org/3/",
+      "note": "itertools, sets and dictionaries are your friends this term."
+    },
+    {
+      "title": "Truth Table Generator (Stanford)",
+      "url": "https://web.stanford.edu/class/cs103/tools/truth-table-tool/",
+      "note": "Check your hand-made truth tables."
+    },
+    {
+      "title": "Graph Online",
+      "url": "https://graphonline.top/en/",
+      "note": "Draw graphs and run classic algorithms visually."
+    },
+    {
+      "title": "Lean 4 Natural Number Game",
+      "url": "https://adam.math.hhu.de/#/g/leanprover-community/nng4",
+      "note": "Prove theorems with a computer, like a puzzle game."
+    }
+  ]
+}

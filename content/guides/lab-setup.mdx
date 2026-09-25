@@ -1,0 +1,88 @@
+---
+title: "Lab setup: GitHub, Classroom 50 and Codespaces"
+description: "Do this once, before your first lab. About ten minutes, nothing to install."
+order: 1
+---
+
+## What you are setting up
+
+| Piece | What it does | Cost |
+|---|---|---|
+| **GitHub account** | Your identity for every lab and the project | free |
+| **Classroom 50** ([classroom50.org](https://classroom50.org)) | Gives you a private repository for each lab and grades it automatically. Built by the team behind Harvard's CS50. | free |
+| **GitHub Codespaces** | VS Code in your browser, opened from your lab repository, with Python and the tests ready | free within your monthly quota |
+
+Nothing is installed on the lab computers or your laptop. A browser is enough, and your work is saved on GitHub, so you can continue at home.
+
+<Step n={1} title="Create a GitHub account" time="3 min" id="github">
+
+Go to [github.com/signup](https://github.com/signup). If you already have an account, use it.
+
+- Choose a username you would be happy to put on your CV. Recruiters look at GitHub profiles.
+- Add your university email to the account (Settings → Emails). It makes the student benefits easier to get.
+- Optional: apply for the free [GitHub Student Developer Pack](https://education.github.com/pack). It includes extra Codespaces hours and many professional tools.
+
+</Step>
+
+<Step n={2} title="Accept the course invitation" time="1 min" id="invite">
+
+The instructor invites you to the GitHub organization **FiratUniversity-IJDP-SoftEng** using your email. You receive an email from GitHub with the subject *“… invited you to join FiratUniversity-IJDP-SoftEng”*. Open it and click **Join**.
+
+No email? Check spam. Still nothing? Tell the instructor the email address and GitHub username you use.
+
+</Step>
+
+<Step n={3} title="Sign in to Classroom 50" time="2 min" id="classroom50">
+
+1. Open [classroom50.org](https://classroom50.org) and click **Sign in with GitHub**. Authorize the app.
+2. You should see **FiratUniversity-IJDP-SoftEng** under your organizations. Click **Open**.
+3. Under **My classrooms**, find **dm-2026** and click **View assignments**.
+
+You are ready. Each week the lab page tells you which assignment to accept.
+
+> [!tip] If “Sign in with GitHub” does not work on the university network
+> Expand **Other sign-in methods** and choose **Use a device code instead**: copy the code, open the GitHub page it shows, paste the code, and come back.
+
+</Step>
+
+<Step n={4} title="Try Codespaces once" time="3 min" id="codespaces">
+
+Codespaces opens from a repository, so you will do this for real in the first lab. What to expect:
+
+1. On your lab repository page: green **Code** button → **Codespaces** tab → **Create codespace on main**.
+2. VS Code opens in the browser. The first start takes a minute or two.
+3. The **terminal** is at the bottom. That is where you type `python check.py` and `git push`.
+
+Your codespaces are listed at [github.com/codespaces](https://github.com/codespaces). They stop by themselves after 30 minutes without activity. Delete old ones there when the lab is graded, to save your quota.
+
+</Step>
+
+## The weekly loop
+
+Once set up, every lab works the same way:
+
+1. **Accept** the lab on classroom50.org → your repository is created.
+2. **Open** it in Codespaces.
+3. **Solve** the TODOs; run `python check.py` as often as you like.
+4. **Push** to submit: `git add -A`, `git commit -m "…"`, `git push`. Every push is graded; the score appears under **Releases**.
+
+## Other ways to work (optional)
+
+- **cs50.dev.** Harvard CS50's free VS Code in the browser. It is great for practicing Python and running the exploration notebooks. For graded labs, Codespaces is simpler, because it opens your own repository with permission to push already set up.
+- **Your own computer.** Install [Python 3.12+](https://www.python.org/downloads/), [Git](https://git-scm.com/downloads) and [VS Code](https://code.visualstudio.com/), then `git clone` your lab repository. Everything else is the same.
+- **Google Colab.** Good for the notebooks (each lab page has an **Open in Colab** button). It is not suited to the graded files.
+- **Command line fans.** Classroom 50 also has a CLI: `gh extension install foundation50/gh-student`, then `gh student accept FiratUniversity-IJDP-SoftEng dm-2026 lab01` and `gh student submit`. See the [Classroom 50 student guide](https://github.com/foundation50/classroom50/wiki/CLI-Student-Guide).
+
+## Troubleshooting
+
+> [!note] Classroom 50 says “Not a member yet” or “This assignment isn't available to you”
+> You have not joined the organization yet (step 2), or you joined with a different GitHub account than the one you signed in with. Accept the invitation, then click **Check again**.
+
+> [!note] I cannot create a codespace
+> Make sure you are on **your own** lab repository (named `dm-2026-lab…-yourusername`), not the template. If GitHub says your quota is used up, delete old codespaces at [github.com/codespaces](https://github.com/codespaces), or work on cs50.dev or your own computer this week.
+
+> [!note] `git push` asks for a password
+> Inside Codespaces this should not happen. On your own computer, sign in with the [GitHub CLI](https://cli.github.com/) (`gh auth login`) or use GitHub Desktop.
+
+> [!note] Anything else
+> Copy the exact error message, take a screenshot, and bring it to the lab or email the instructor. “It does not work” cannot be debugged; an error message can.

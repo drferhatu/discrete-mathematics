@@ -1,0 +1,71 @@
+---
+import '@/styles/global.css';
+import 'katex/dist/katex.min.css';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { course, href } from '@/lib/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** use the title as-is instead of "Title · Course" */
+  bare?: boolean;
+  ogType?: 'website' | 'article';
+}
+const { title, description = course.description.slice(0, 155), bare = false, ogType = 'website' } = Astro.props;
+const fullTitle = bare ? title : `${title} · ${course.title}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(href('/og.png'), Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
+    <meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0e13" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content={`${course.title} · ${course.code}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="sitemap" href={href('/sitemap-index.xml')} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      // theme before paint: saved choice, else system preference
+      (() => {
+        let t = null;
+        try { t = localStorage.getItem('theme'); } catch (e) {}
+        if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
+    <slot name="head" />
+  </head>
+  <body class="min-h-dvh flex flex-col">
+    <a href="#content" class="skip-link">Skip to content</a>
+    <Header />
+    <main id="content" class="flex-1" data-pagefind-body>
+      <slot />
+    </main>
+    <Footer />
+    <script>
+      // color the 1/0 cells of hand-written truth tables
+      document.querySelectorAll('table.tt td').forEach((td) => {
+        const v = td.textContent?.trim();
+        if (v === '1' || v === '0') td.innerHTML = `<span class="tv tv-${v}">${v}</span>`;
+      });
+    </script>
+  </body>
+</html>

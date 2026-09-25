@@ -1,0 +1,47 @@
+---
+/** Compact 15-week strip. The current week is highlighted on the client (the site is static). */
+import { modules, moduleColorVar, weekHref, scheduleOf, formatDate, pad, moduleOf, type Week } from '@/lib/site';
+interface Props { weeks: Week[]; }
+const { weeks } = Astro.props;
+---
+<div class="semester-strip">
+  <ol class="grid grid-cols-5 gap-1.5 sm:grid-cols-15" style="--cols:15">
+    {weeks.map((w) => {
+      const m = moduleOf(w.data.module);
+      const s = scheduleOf(w.data.week);
+      return (
+        <li style={`--mod:${moduleColorVar(m)}`}>
+          <a href={weekHref(w.data.week)} data-week-date={s?.date} title={`Week ${w.data.week} · ${w.data.title}`}
+             class="strip-cell group relative flex h-16 flex-col justify-between rounded-lg border border-line bg-card p-2 transition-all hover:-translate-y-0.5 hover:border-[var(--mod)]">
+            <span class="h-1 w-full rounded-full bg-[var(--mod)] opacity-80"></span>
+            <span class="font-mono text-sm font-semibold text-ink">{pad(w.data.week)}</span>
+            <span class="font-mono text-[9px] text-ink-3">{w.data.exam ? 'EXAM' : formatDate(s?.date)}</span>
+            <span class="now-badge absolute -top-2 right-1 hidden rounded bg-accent px-1 font-mono text-[9px] font-bold text-white">NEXT</span>
+          </a>
+        </li>
+      );
+    })}
+  </ol>
+  <ul class="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+    {modules.map((m) => (
+      <li class="flex items-center gap-2 text-xs text-ink-2"><span class="size-2.5 rounded-sm" style={`background:${moduleColorVar(m)}`}></span>{m.short}</li>
+    ))}
+  </ul>
+</div>
+<style>
+  .strip-cell.is-now { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .strip-cell.is-now .now-badge { display: block; }
+  .strip-cell.is-past { opacity: 0.7; }
+</style>
+<script>
+  // today's class gets TODAY, otherwise the next upcoming class gets NEXT; past weeks are dimmed
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const cells = Array.from(document.querySelectorAll<HTMLElement>('.strip-cell[data-week-date]'));
+  const next = cells.find((c) => (c.dataset.weekDate ?? '') >= today);
+  cells.forEach((c) => (c.dataset.weekDate ?? '') < today && c.classList.add('is-past'));
+  if (next) {
+    next.classList.add('is-now');
+    next.querySelector('.now-badge')!.textContent = next.dataset.weekDate === today ? 'TODAY' : 'NEXT';
+  }
+</script>

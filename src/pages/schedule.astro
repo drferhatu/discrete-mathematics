@@ -1,0 +1,54 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SectionHeading from '@/components/SectionHeading.astro';
+import Roadmap from '@/components/Roadmap.astro';
+import { getWeeksSorted, schedule, scheduleOf, formatDate, weekHref, moduleOf, moduleColorVar, labHref, pad } from '@/lib/site';
+const weeks = await getWeeksSorted();
+---
+<BaseLayout title="Schedule" description="Fall 2026 schedule of Discrete Mathematics: fifteen Mondays, six modules, weekly labs, midterm and final.">
+  <div class="wrap py-14 md:py-20">
+    <SectionHeading eyebrow="Schedule · Fall 2026" title="The semester at a glance" lede="Dates are Mondays. Exam dates are set by the faculty and will be confirmed here and on the WhatsApp channel." />
+
+    <div class="mt-10 overflow-x-auto rounded-2xl border border-line bg-card">
+      <table class="w-full min-w-[640px] text-sm">
+        <thead class="border-b border-line-2 bg-paper-2/60 text-left">
+          <tr>
+            <th class="px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">Week</th>
+            <th class="px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">Date</th>
+            <th class="px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">Topic</th>
+            <th class="px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">Reading</th>
+            <th class="px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">Lab</th>
+          </tr>
+        </thead>
+        <tbody>
+          {weeks.map((w) => {
+            const s = scheduleOf(w.data.week);
+            const m = moduleOf(w.data.module);
+            return (
+              <tr class="border-b border-line last:border-0 hover:bg-paper-2/40" data-week-date={s?.date}>
+                <td class="px-4 py-3"><span class="inline-grid size-8 place-items-center rounded-lg font-mono text-xs font-semibold text-white dark:text-paper" style={`background:${moduleColorVar(m)}`}>{pad(w.data.week)}</span></td>
+                <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-2">{formatDate(s?.date)}</td>
+                <td class="px-4 py-3">
+                  <a href={weekHref(w.data.week)} class="font-semibold text-ink hover:text-brand">{w.data.title}</a>
+                  {s?.note && <span class:list={['mt-0.5 block text-xs', w.data.exam ? 'font-semibold text-accent' : 'text-ink-3']}>{s.note}</span>}
+                </td>
+                <td class="px-4 py-3 text-xs text-ink-2">{w.data.reading}</td>
+                <td class="px-4 py-3 font-mono text-xs">{w.data.lab ? <a href={labHref(w.data.lab)} class="text-brand hover:underline">{w.data.lab}</a> : <span class="text-ink-3">—</span>}</td>
+              </tr>
+            );
+          })}
+          <tr class="bg-accent-soft/50">
+            <td class="px-4 py-3"><span class="inline-grid size-8 place-items-center rounded-lg bg-accent font-mono text-xs font-semibold text-white">F</span></td>
+            <td class="px-4 py-3 font-mono text-xs text-ink-2">{schedule.finals.date ? formatDate(schedule.finals.date) : 'Jan 2027'}</td>
+            <td class="px-4 py-3" colspan="3"><span class="font-semibold text-ink">{schedule.finals.label}</span><span class="mt-0.5 block text-xs text-ink-3">{schedule.finals.note}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <section class="wrap pb-10">
+    <SectionHeading eyebrow="Modules" title="How the ideas build on each other" lede="Logic is the grammar, proofs are the method, structures are the vocabulary, and counting and graphs are where it all pays off." />
+    <div class="mt-12"><Roadmap weeks={weeks} /></div>
+  </section>
+</BaseLayout>

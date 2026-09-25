@@ -1,0 +1,40 @@
+# dependencies and build output
+node_modules/
+dist/
+.astro/
+
+# env and logs
+.env
+.env.*
+npm-debug.log*
+
+# python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# local claude settings
+.claude/
+
+# Source documents stay in the working folder but never go to GitHub.
+# Only the instructor's own slide decks copied into public/slides/ are published.
+*.docx
+*.pdf
+!public/slides/*.pdf
+/[0-9][0-9]-discrete-math-week_*.html
+2025_2026-Fall/
+Exams/
+Ek Notlar/
+
+# rendered notebook views are generated at build time (scripts/build_notebooks.py)
+public/notebooks/
+
+# instructor-only material (project idea bank, solutions): never published
+private/

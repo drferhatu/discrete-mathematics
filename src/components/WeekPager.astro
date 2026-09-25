@@ -1,0 +1,24 @@
+---
+import type { Week } from '@/lib/site';
+import { weekHref, href } from '@/lib/site';
+interface Props { prev?: Week; next?: Week; }
+const { prev, next } = Astro.props;
+---
+<nav aria-label="Week navigation" class="mt-16 grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
+  {prev ? (
+    <a href={weekHref(prev.data.week)} class="group rounded-2xl border border-line bg-card p-5 transition-colors hover:border-line-2">
+      <span class="eyebrow">← Previous week</span>
+      <span class="mt-1.5 block font-semibold text-ink group-hover:text-brand">Week {prev.data.week}: {prev.data.title}</span>
+    </a>
+  ) : (
+    <a href={href('/weeks')} class="rounded-2xl border border-dashed border-line p-5 text-ink-3 hover:border-line-2 hover:text-ink">← All weeks</a>
+  )}
+  {next ? (
+    <a href={weekHref(next.data.week)} class="group rounded-2xl border border-line bg-card p-5 text-right transition-colors hover:border-line-2">
+      <span class="eyebrow">Next week →</span>
+      <span class="mt-1.5 block font-semibold text-ink group-hover:text-brand">Week {next.data.week}: {next.data.title}</span>
+    </a>
+  ) : (
+    <a href={href('/schedule')} class="rounded-2xl border border-dashed border-line p-5 text-right text-ink-3 hover:border-line-2 hover:text-ink">Back to the schedule →</a>
+  )}
+</nav>

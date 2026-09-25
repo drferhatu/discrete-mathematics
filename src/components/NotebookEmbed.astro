@@ -1,0 +1,30 @@
+---
+/**
+ * Jupyter notebook: "Open in Colab" + rendered read-only view.
+ * The HTML view is generated into public/notebooks/ by scripts/build_notebooks.py.
+ */
+import { href, REPO } from '@/lib/site';
+interface Props { file: string; title?: string; }
+const { file, title = 'Notebook' } = Astro.props;
+const colab = `https://colab.research.google.com/github/${REPO}/blob/main/${file}`;
+const github = `https://github.com/${REPO}/blob/main/${file}`;
+const stem = file.split('/').pop()!.replace(/\.ipynb$/, '');
+const html = href(`/notebooks/${stem}.html`);
+---
+<section aria-labelledby={`nb-${stem}`} id="notebook" class="not-prose my-12 overflow-hidden rounded-2xl border border-line bg-card shadow-soft">
+  <div class="flex flex-wrap items-center justify-between gap-4 border-b border-line px-5 py-4">
+    <div class="flex items-center gap-3">
+      <span class="grid size-10 place-items-center rounded-xl bg-accent-soft font-mono text-sm font-bold text-accent" aria-hidden="true">.ipynb</span>
+      <div>
+        <h2 id={`nb-${stem}`} class="!m-0 !border-0 !p-0 !font-sans !text-base !font-semibold text-ink">{title}</h2>
+        <p class="!mt-0 text-xs text-ink-3">Read it here, run it in Colab or in your cs50.dev workspace.</p>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href={colab} target="_blank" rel="noopener" class="btn-ghost !py-1.5 !text-xs !text-ink !no-underline">Open in Colab ↗</a>
+      <a href={github} target="_blank" rel="noopener" class="btn-ghost !py-1.5 !text-xs !text-ink !no-underline">GitHub</a>
+      <a href={html} target="_blank" rel="noopener" class="btn-ghost !py-1.5 !text-xs !text-ink !no-underline">Full screen</a>
+    </div>
+  </div>
+  <iframe src={html} title={`${title}: notebook view`} loading="lazy" class="block h-[70vh] min-h-[480px] w-full bg-white"></iframe>
+</section>

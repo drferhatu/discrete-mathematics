@@ -1,0 +1,78 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Toc from '@/components/Toc.astro';
+import Terminal from '@/components/Terminal.astro';
+import Step from '@/components/Step.astro';
+import NotebookEmbed from '@/components/NotebookEmbed.astro';
+import LogicPlayground from '@/components/LogicPlayground.astro';
+import { render } from 'astro:content';
+import { getLabsSorted, href, weekHref, labHref, course, acceptCmd, formatDate } from '@/lib/site';
+
+export async function getStaticPaths() {
+  const labs = await getLabsSorted();
+  return labs.map((l, i) => ({ params: { slug: l.id }, props: { lab: l, prev: labs[i - 1], next: labs[i + 1] } }));
+}
+const { lab, prev, next } = Astro.props;
+const d = lab.data;
+const { Content, headings } = await render(lab);
+const repo = `${course.classroom.slug}-${d.assignment}-USERNAME`;
+---
+<BaseLayout title={`Lab ${d.lab}: ${d.title}`} description={d.description} ogType="article">
+  <header class="relative overflow-hidden border-b border-line bg-ink text-paper">
+    <div class="grid-paper pointer-events-none absolute inset-0 opacity-50" aria-hidden="true"></div>
+    <div class="wrap relative grid grid-cols-1 gap-10 py-12 md:py-16 lg:grid-cols-[1.3fr_1fr] lg:items-end">
+      <div>
+        <nav aria-label="Breadcrumb" class="font-mono text-xs text-paper/50"><a href={href('/labs')} class="hover:text-paper">labs</a> / {lab.id}</nav>
+        <p class="mt-6 font-mono text-sm text-[#ffb08a]">&gt;_ Lab {d.lab} · <a class="underline-offset-4 hover:underline" href={weekHref(d.week)}>Week {d.week}</a></p>
+        <h1 class="display mt-2 text-5xl leading-[1] md:text-6xl">{d.title}</h1>
+        <p class="mt-4 max-w-2xl text-lg text-paper/75">{d.description}</p>
+        {d.status === 'draft' && <p class="mt-4 inline-block rounded-md bg-paper/10 px-3 py-1.5 font-mono text-xs text-paper/80">Preview · this lab opens in week {d.week}</p>}
+        {d.status === 'open' && (
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href={d.acceptUrl || course.classroom.web} target="_blank" rel="noopener" class="btn-accent">Accept lab {d.assignment} ↗</a>
+            <a href="#steps" class="inline-flex items-center gap-2 rounded-lg border border-paper/25 px-4 py-2.5 text-sm font-semibold text-paper hover:border-paper/60">Step-by-step ↓</a>
+          </div>
+        )}
+      </div>
+      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-paper/15 bg-paper/15 text-sm">
+        {[
+          ['assignment', d.assignment],
+          ['time', d.duration],
+          ['points', `${d.points} (autograded)`],
+          ['due', d.due ? `${formatDate(d.due)} ${d.due.slice(11)}` : 'see announcement'],
+        ].map(([k, v]) => (
+          <div class="bg-ink p-4"><dt class="font-mono text-[10px] uppercase tracking-[0.16em] text-paper/45">{k}</dt><dd class="mt-1 font-mono text-paper">{v}</dd></div>
+        ))}
+        <div class="col-span-2 bg-ink p-4">
+          <dt class="font-mono text-[10px] uppercase tracking-[0.16em] text-paper/45">files you edit</dt>
+          <dd class="mt-1 flex flex-wrap gap-1.5">{d.files.map((f) => <code class="rounded bg-paper/10 px-1.5 py-0.5 font-mono text-xs">{f}</code>)}</dd>
+        </div>
+      </dl>
+    </div>
+  </header>
+
+  <div class="wrap grid grid-cols-1 gap-12 py-12 lg:grid-cols-[1fr_250px]">
+    <article class="prose-lesson min-w-0 max-w-3xl" data-reading-progress>
+      <Content components={{ Terminal, Step, NotebookEmbed, LogicPlayground }} />
+
+      <nav aria-label="Lab navigation" class="not-prose mt-16 grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
+        {prev ? <a href={labHref(prev.id)} class="card p-5 hover:border-ink"><span class="eyebrow">← Previous lab</span><span class="mt-1 block font-semibold text-ink">Lab {prev.data.lab}: {prev.data.title}</span></a> : <a href={href('/labs')} class="rounded-2xl border border-dashed border-line p-5 text-ink-3">← All labs</a>}
+        {next ? <a href={labHref(next.id)} class="card p-5 text-right hover:border-ink"><span class="eyebrow">Next lab →</span><span class="mt-1 block font-semibold text-ink">Lab {next.data.lab}: {next.data.title}</span></a> : <span></span>}
+      </nav>
+    </article>
+
+    <aside class="hidden lg:block">
+      <div class="sticky top-24 space-y-6">
+        <Toc headings={headings} />
+        <div class="rounded-xl border border-line bg-card p-4 text-sm">
+          <p class="eyebrow mb-2">Your repository</p>
+          <p class="break-all font-mono text-xs text-ink">{course.classroom.org}/<wbr />{repo}</p>
+          <a href={d.acceptUrl || course.classroom.web} target="_blank" rel="noopener" class="btn-primary mt-4 w-full justify-center !text-xs">Accept on Classroom 50 ↗</a>
+          <p class="mt-3 text-xs text-ink-3">CLI alternative:</p>
+          <p class="break-all font-mono text-[11px] text-ink-2">{acceptCmd(d.assignment)}</p>
+          <a href={href('/guides/lab-setup#troubleshooting')} class="mt-4 inline-block text-xs font-semibold text-brand hover:underline">Stuck? Troubleshooting →</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</BaseLayout>
