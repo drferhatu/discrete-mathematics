@@ -256,6 +256,18 @@
       "note": "The course we follow most closely."
     },
     {
+      "title": "6.042J Mathematics for Computer Science (video lectures)",
+      "org": "MIT OpenCourseWare",
+      "url": "https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/",
+      "note": "Full lectures, notes and problem sets."
+    },
+    {
+      "title": "CS103 Mathematical Foundations of Computing",
+      "org": "Stanford University",
+      "url": "https://web.stanford.edu/class/cs103/",
+      "note": "Superb on logic, proofs and cardinality."
+    },
+    {
       "title": "CS 70 Discrete Mathematics and Probability Theory",
       "org": "UC Berkeley",
       "url": "https://www.eecs70.org/"
@@ -274,11 +286,6 @@
       "title": "CS381 Introduction to Discrete Structures",
       "org": "Old Dominion University",
       "url": "https://www.cs.odu.edu/~toida/nerzic/content/web_course.html"
-    },
-    {
-      "title": "MAD 2104 Discrete Mathematics I",
-      "org": "Florida State University",
-      "url": "https://www.math.fsu.edu/~pkirby/mad2104/index.math.htm"
     }
   ],
   "tools": [
