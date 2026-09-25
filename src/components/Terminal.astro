@@ -5,12 +5,12 @@ const { cmd, lines = [], out, title = 'terminal' } = Astro.props;
 const all = cmd ? [cmd, ...lines] : lines;
 const text = all.join('\n');
 ---
-<div class="not-prose my-5 overflow-hidden rounded-xl border border-line bg-[#101118] text-[#e8e9f0] shadow-soft">
-  <div class="flex items-center justify-between border-b border-white/10 px-4 py-2">
-    <span class="font-mono text-[11px] text-white/50">{title}</span>
-    <button type="button" data-copy={text} class="copy-btn rounded-md border border-white/15 px-2 py-0.5 font-mono text-[11px] text-white/70 hover:border-white/40 hover:text-white">copy</button>
+<div class="terminal my-5 overflow-hidden rounded-xl border border-line-2 bg-card shadow-soft">
+  <div class="flex items-center justify-between border-b border-line bg-paper-2 px-4 py-2">
+    <span class="font-mono text-[11px] font-medium text-ink-3">&gt;_ {title}</span>
+    <button type="button" data-copy={text} class="copy-btn rounded-md border border-line-2 bg-card px-2 py-0.5 font-mono text-[11px] text-ink-2 hover:border-ink hover:text-ink">copy</button>
   </div>
-  <pre class="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed"><code>{all.map((l) => (<span class="block"><span class="select-none text-[#ff8a57]">$ </span>{l}</span>))}{out && <span class="block whitespace-pre-wrap text-white/55">{out}</span>}</code></pre>
+  <pre class="overflow-x-auto px-4 py-3 font-mono text-[13.5px] leading-relaxed text-ink"><code>{all.map((l) => (<span class="block font-medium"><span class="select-none text-accent">$ </span>{l}</span>))}{out && <span class="mt-1 block whitespace-pre-wrap text-ink-2">{out}</span>}</code></pre>
 </div>
 <script>
   document.querySelectorAll<HTMLButtonElement>('.copy-btn').forEach((b) => {

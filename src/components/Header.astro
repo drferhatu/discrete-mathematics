@@ -1,5 +1,9 @@
 ---
 import { course, href } from '@/lib/site';
+import { getCollection } from 'astro:content';
+
+// newest announcement date, used on the client to show a "new" dot for 7 days
+const latest = (await getCollection('announcements')).map((a) => a.data.date.toISOString().slice(0, 10)).sort().at(-1) ?? '';
 
 const nav = [
   { label: 'Syllabus', path: '/syllabus' },
@@ -8,18 +12,20 @@ const nav = [
   { label: 'Labs', path: '/labs' },
   { label: 'Project', path: '/project' },
   { label: 'Resources', path: '/resources' },
+  { label: 'Announcements', path: '/announcements' },
 ];
 const current = Astro.url.pathname.replace(/\/$/, '');
 const isActive = (p: string) => current === href(p).replace(/\/$/, '') || current.startsWith(href(p) + '/');
 ---
-<header class="sticky top-0 z-50 border-b border-line/80 bg-paper/80 backdrop-blur-md">
+<header data-latest-news={latest} class="sticky top-0 z-50 border-b border-line/80 bg-paper/80 backdrop-blur-md">
   <div id="reading-progress" class="absolute inset-x-0 top-0 h-[2px] bg-accent" aria-hidden="true"></div>
   <div class="wrap flex h-15 items-center justify-between gap-4 py-3">
     <a href={href('/')} class="group flex items-center gap-3 text-ink">
       <span class="grid size-9 place-items-center rounded-lg bg-ink font-mono text-[15px] font-semibold text-paper transition-colors group-hover:bg-brand" aria-hidden="true">∀</span>
       <span class="leading-tight">
         <span class="block font-display text-xl">{course.title}</span>
-        <span class="block font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">{course.code} · Fall 2026</span>
+        <span class="block whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">{course.code} · Fall 2026<span class="hidden xl:inline"> · {course.instructor.name}</span></span>
+        <span class="block whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 xl:hidden">{course.instructor.name}</span>
       </span>
     </a>
 
@@ -29,10 +35,10 @@ const isActive = (p: string) => current === href(p).replace(/\/$/, '') || curren
           href={href(n.path)}
           aria-current={isActive(n.path) ? 'page' : undefined}
           class:list={[
-            'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            'relative rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
             isActive(n.path) ? 'bg-ink text-paper' : 'text-ink-2 hover:bg-paper-2 hover:text-ink',
           ]}
-        >{n.label}</a>
+        >{n.label}{n.path === '/announcements' && <span class="news-dot absolute right-0.5 top-1 hidden size-2 rounded-full bg-accent ring-2 ring-paper" aria-hidden="true"></span>}</a>
       ))}
     </nav>
 
@@ -57,7 +63,6 @@ const isActive = (p: string) => current === href(p).replace(/\/$/, '') || curren
         <a href={href(n.path)} aria-current={isActive(n.path) ? 'page' : undefined}
            class:list={['rounded-lg px-3 py-3 text-base font-medium', isActive(n.path) ? 'bg-ink text-paper' : 'text-ink hover:bg-paper-2']}>{n.label}</a>
       ))}
-      <a href={href('/announcements')} class="rounded-lg px-3 py-3 text-base font-medium text-ink hover:bg-paper-2">Announcements</a>
     </div>
   </nav>
 </header>
@@ -77,6 +82,12 @@ const isActive = (p: string) => current === href(p).replace(/\/$/, '') || curren
     btn.querySelector('.icon-open')?.classList.toggle('hidden', open);
     btn.querySelector('.icon-close')?.classList.toggle('hidden', !open);
   });
+
+  // "new" dot on Announcements when the newest one is less than 7 days old
+  const latest = document.querySelector<HTMLElement>('[data-latest-news]')?.dataset.latestNews;
+  if (latest && Date.now() - new Date(latest + 'T00:00:00').getTime() < 7 * 864e5) {
+    document.querySelectorAll('.news-dot').forEach((d) => d.classList.remove('hidden'));
+  }
 
   document.getElementById('theme-toggle')?.addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';

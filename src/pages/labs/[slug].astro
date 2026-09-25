@@ -18,34 +18,34 @@ const { Content, headings } = await render(lab);
 const repo = `${course.classroom.slug}-${d.assignment}-USERNAME`;
 ---
 <BaseLayout title={`Lab ${d.lab}: ${d.title}`} description={d.description} ogType="article">
-  <header class="relative overflow-hidden border-b border-line bg-ink text-paper">
-    <div class="grid-paper pointer-events-none absolute inset-0 opacity-50" aria-hidden="true"></div>
+  <header class="relative overflow-hidden border-b border-line">
+    <div class="grid-paper grid-fade pointer-events-none absolute inset-0" aria-hidden="true"></div>
     <div class="wrap relative grid grid-cols-1 gap-10 py-12 md:py-16 lg:grid-cols-[1.3fr_1fr] lg:items-end">
       <div>
-        <nav aria-label="Breadcrumb" class="font-mono text-xs text-paper/50"><a href={href('/labs')} class="hover:text-paper">labs</a> / {lab.id}</nav>
-        <p class="mt-6 font-mono text-sm text-[#ffb08a]">&gt;_ Lab {d.lab} · <a class="underline-offset-4 hover:underline" href={weekHref(d.week)}>Week {d.week}</a></p>
-        <h1 class="display mt-2 text-5xl leading-[1] md:text-6xl">{d.title}</h1>
-        <p class="mt-4 max-w-2xl text-lg text-paper/75">{d.description}</p>
-        {d.status === 'draft' && <p class="mt-4 inline-block rounded-md bg-paper/10 px-3 py-1.5 font-mono text-xs text-paper/80">Preview · this lab opens in week {d.week}</p>}
+        <nav aria-label="Breadcrumb" class="font-mono text-xs text-ink-3"><a href={href('/labs')} class="hover:text-ink">labs</a> / {lab.id}</nav>
+        <p class="mt-6 font-mono text-sm text-accent">&gt;_ Lab {d.lab} · <a class="underline-offset-4 hover:underline" href={weekHref(d.week)}>Week {d.week}</a></p>
+        <h1 class="display mt-2 text-5xl leading-[1] text-ink md:text-6xl">{d.title}</h1>
+        <p class="mt-4 max-w-2xl text-lg text-ink-2">{d.description}</p>
+        {d.status === 'draft' && <p class="mt-4 inline-block rounded-md bg-brand-soft px-3 py-1.5 font-mono text-xs text-brand">Preview · this lab opens in week {d.week}</p>}
         {d.status === 'open' && (
           <div class="mt-6 flex flex-wrap gap-3">
             <a href={d.acceptUrl || course.classroom.web} target="_blank" rel="noopener" class="btn-accent">Accept lab {d.assignment} ↗</a>
-            <a href="#steps" class="inline-flex items-center gap-2 rounded-lg border border-paper/25 px-4 py-2.5 text-sm font-semibold text-paper hover:border-paper/60">Step-by-step ↓</a>
+            <a href="#steps" class="btn-ghost">Step-by-step ↓</a>
           </div>
         )}
       </div>
-      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-paper/15 bg-paper/15 text-sm">
+      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line text-sm shadow-soft">
         {[
           ['assignment', d.assignment],
           ['time', d.duration],
           ['points', `${d.points} (autograded)`],
           ['due', d.due ? `${formatDate(d.due)} ${d.due.slice(11)}` : 'see announcement'],
         ].map(([k, v]) => (
-          <div class="bg-ink p-4"><dt class="font-mono text-[10px] uppercase tracking-[0.16em] text-paper/45">{k}</dt><dd class="mt-1 font-mono text-paper">{v}</dd></div>
+          <div class="bg-card p-4"><dt class="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">{k}</dt><dd class="mt-1 font-mono text-ink">{v}</dd></div>
         ))}
-        <div class="col-span-2 bg-ink p-4">
-          <dt class="font-mono text-[10px] uppercase tracking-[0.16em] text-paper/45">files you edit</dt>
-          <dd class="mt-1 flex flex-wrap gap-1.5">{d.files.map((f) => <code class="rounded bg-paper/10 px-1.5 py-0.5 font-mono text-xs">{f}</code>)}</dd>
+        <div class="col-span-2 bg-card p-4">
+          <dt class="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">files you edit</dt>
+          <dd class="mt-1 flex flex-wrap gap-1.5">{d.files.map((f) => <code class="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-xs text-ink">{f}</code>)}</dd>
         </div>
       </dl>
     </div>

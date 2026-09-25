@@ -203,6 +203,9 @@ body {
 .callout-try { border-left-color: var(--mod-rose); border-style: dashed; border-left-style: solid; }
 .callout-try .callout-title { color: var(--mod-rose); }
 
+/* "wow moment" box on week pages: warm light tint, readable in both themes */
+.wow-box { background: color-mix(in srgb, var(--accent) 7%, var(--card)); border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+
 /* Step list used on lab pages: <ol class="steps"> */
 .prose-lesson ol.steps { @apply list-none pl-0 space-y-0; counter-reset: step; }
 
