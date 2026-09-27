@@ -22,14 +22,36 @@
   },
   "channels": [
     {
+      "id": "whatsapp",
       "name": "WhatsApp channel",
       "note": "Urgent announcements",
-      "url": "https://whatsapp.com/channel/0029Va7485X6WaKnrgJdep2i"
+      "desc": "Quick announcements and reminders land here first. Everyone is expected to join.",
+      "url": "https://whatsapp.com/channel/0029Va7485X6WaKnrgJdep2i",
+      "cta": "Join the channel"
     },
     {
+      "id": "instagram",
       "name": "Instagram · @dr.ferhatucar",
       "note": "AI, software and course highlights",
-      "url": "https://www.instagram.com/dr.ferhatucar"
+      "desc": "Short, useful posts on AI, software and what we do in class.",
+      "url": "https://www.instagram.com/dr.ferhatucar",
+      "cta": "Follow"
+    },
+    {
+      "id": "calendar",
+      "name": "Public work calendar",
+      "note": "Weekly schedule",
+      "desc": "My weekly schedule: classes, meetings and when I am available.",
+      "url": "https://calendar.google.com/calendar/u/0?cid=ZDVmMWU1ZWFiNWM0ZTE2ZGVjMjU2NGI2M2ViYjNmYjI1YjkwOGI4ZjJlNmIyNTRhNzhmZWMwNjNmM2U4NWRjNUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t",
+      "cta": "Open calendar"
+    },
+    {
+      "id": "office",
+      "name": "Office hours booking",
+      "note": "Book a slot",
+      "desc": "Questions, your project or advice: pick a time that suits you.",
+      "url": "https://calendar.app.google/3woNnqLwS7RhtEBR7",
+      "cta": "Book a slot"
     }
   ],
   "classroom": {

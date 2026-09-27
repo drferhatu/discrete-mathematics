@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import SectionHeading from '@/components/SectionHeading.astro';
+import Channels from '@/components/Channels.astro';
 import { course, href, weekHref } from '@/lib/site';
 const a = course.assessment;
 ---
@@ -31,6 +32,8 @@ const a = course.assessment;
       </dl>
     </div>
   </header>
+
+  <section class="wrap pt-16"><Channels title="Reach me" lede="Join the WhatsApp channel for announcements, check my calendar before you drop by, and book an office-hours slot for questions or your project." /></section>
 
   <section class="wrap py-16">
     <SectionHeading eyebrow="Philosophy" title="A language for precise thinking" lede={course.philosophy.intro} />
