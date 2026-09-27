@@ -74,10 +74,9 @@ We follow six modules over fifteen Mondays. The full plan is on the [schedule](/
 ## Before week 2: your checklist
 
 > [!warning] Do this before Monday, September 28
-> The first lab needs these three things. It takes about ten minutes.
+> Lab 1 needs only one thing: a GitHub account. It takes two minutes.
 
-1. **Create a GitHub account** at [github.com/signup](https://github.com/signup) if you do not have one. Use a username you would be happy to show an employer.
-2. **Accept the GitHub organization invitation** that arrives by email (from `FiratUniversity-IJDP-SoftEng`). No email yet? It will come before the lab; check your spam folder.
-3. **Sign in once at [classroom50.org](https://classroom50.org)** with that GitHub account and check that you see the course. The full walkthrough is in the [lab setup guide](/guides/lab-setup).
+1. **Create a GitHub account** at [github.com/signup](https://github.com/signup) if you do not have one. Use your university email and a username you would be happy to show an employer.
+2. **Open the [Lab 1 page](/labs/lab-01)** once, so you know where the steps are. On Monday you follow them right after the lecture.
 
-Optional but recommended: apply for the free [GitHub Student Developer Pack](https://education.github.com/pack) with your university email.
+Optional but recommended: apply for the free [GitHub Student Developer Pack](https://education.github.com/pack) with your university email. From Lab 2 on we use Classroom 50; you will receive an invitation to the course organization by email.

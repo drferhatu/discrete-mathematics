@@ -74,6 +74,30 @@ Sonra classroom50.org → `dm-2026` → **New assignment**:
 
 ---
 
+## 2b. B planı: Classroom 50 olmadan (Lab 1'de kullanılıyor)
+
+Lab sayfasında `mode: template` yazıyorsa öğrenciler şu yolu izler: public şablondan kendi hesabında **özel**
+`dm-2026-labNN` deposunu açar, `drferhatu`'yu collaborator ekler, README'ye ad/numara yazar, push eder.
+Şablondaki `.github/workflows/check.yml` her push'ta testleri öğrencinin reposunda çalıştırır (✅/❌).
+Org içindeki (Classroom 50) repolarda bu workflow kendini atlar.
+
+Hazırlık: `scripts/publish_lab_template.sh labNN --public`
+
+Teslim tarihinden sonra, tek komut:
+
+```bash
+/opt/miniconda3/envs/ferhat_ml/bin/python scripts/collect_lab.py lab01 --due "2026-10-04 23:59"
+```
+
+- `dm-2026-lab01` adlı depoların bekleyen davetlerini kabul eder (başka davetlere dokunmaz).
+- Her depoda teslim tarihinden önceki **son push**'u GitHub'ın workflow kaydından bulur (commit tarihi taklit edilebilir, bu edilemez).
+- O commit'i klonlar, `tests/` klasörünü **resmi testlerle** değiştirir, pytest çalıştırır.
+- 5 güne kadar geç push'lara günlük %10 kesinti uygular (`--late-days`).
+- `private/grades/lab01.csv` yazar (GitHub'a gitmez): github, ad, numara, puan, teslim saati, not.
+
+Öğrenci kodu sizin bilgisayarınızda (geçici klasörde, GitHub token'ı olmadan, zaman aşımıyla) çalışır.
+Belirli depoları denemek için: `--repos kullanici/dm-2026-lab01`.
+
 ## 3. Haftalık akış
 
 1. Hafta içeriği: `content/weeks/week-NN.md(x)` dosyasını düzenleyin; notlar bitince `status: ready`.

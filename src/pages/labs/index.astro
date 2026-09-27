@@ -27,6 +27,10 @@ const STATUS: Record<string, string> = { open: 'bg-true-soft text-true', closed:
   </header>
 
   <section class="wrap py-16">
+    <aside class="callout callout-warn mb-12 max-w-3xl">
+      <p class="callout-title">Lab 1 is the exception</p>
+      <p class="text-ink-2">Classroom 50 opens from Lab 2. For Lab 1 you create your own private copy from a template, share it with the instructor and submit by pushing. <a class="link" href={labHref('lab-01') + '#how-to-submit'}>How to submit Lab 1 →</a></p>
+    </aside>
     <SectionHeading eyebrow="The loop" title="Four steps, every week" />
     <ol class="mt-10 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
       {flow.map((f) => (

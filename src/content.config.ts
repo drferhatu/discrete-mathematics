@@ -35,6 +35,8 @@ const labs = defineCollection({
     description: z.string(),
     assignment: z.string(),                   // Classroom 50 assignment slug, e.g. "lab01"
     acceptUrl: z.string().default(''),        // Classroom 50 accept link for this assignment (optional)
+    // classroom50: accept on classroom50.org | template: students copy a public template into their own account (plan B)
+    mode: z.enum(['classroom50', 'template']).default('classroom50'),
     status: z.enum(['draft', 'open', 'closed']).default('draft'),
     due: z.string().default(''),              // YYYY-MM-DD HH:mm, local time
     duration: z.string().default('75 min'),
