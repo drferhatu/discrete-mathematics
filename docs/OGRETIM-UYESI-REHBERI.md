@@ -66,7 +66,7 @@ Sonra classroom50.org → `dm-2026` → **New assignment**:
 
 - Slug: `lab01` · Name: `Lab 1 · Truth-Table Engine` · Type: Individual
 - Template: `FiratUniversity-IJDP-SoftEng/dm-2026-lab01-template`
-- Grading: **Autograded** · Submission type: **Every push** · Due: 4 Ekim 23:59
+- Grading: **Autograded** · Submission type: **Every push** · Due: haftanın Cuması 23:59 (Lab 1: 2 Ekim)
 - Autograding tests: `labs/autograders/lab01/tests.json` içeriği (tek pytest testi, 10 puan)
 - Kaydedin, **accept link**'i kopyalayın → `content/labs/lab-01.mdx` içindeki `acceptUrl: ""` alanına yapıştırıp push edin (boş kalırsa buton classroom50.org'a gider).
 
@@ -86,7 +86,7 @@ Hazırlık: `scripts/publish_lab_template.sh labNN --public`
 Teslim tarihinden sonra, tek komut:
 
 ```bash
-/opt/miniconda3/envs/ferhat_ml/bin/python scripts/collect_lab.py lab01 --due "2026-10-04 23:59"
+/opt/miniconda3/envs/ferhat_ml/bin/python scripts/collect_lab.py lab01          # son teslim lab sayfasından okunur; Cumartesi çalıştırın
 ```
 
 - `dm-2026-lab01` adlı depoların bekleyen davetlerini kabul eder (başka davetlere dokunmaz).

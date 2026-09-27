@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import SectionHeading from '@/components/SectionHeading.astro';
-import { getLabsSorted, labHref, href, course } from '@/lib/site';
+import { getLabsSorted, labHref, href, course, labDue, formatDue } from '@/lib/site';
 const labs = await getLabsSorted();
 const flow = [
   { k: '01', t: 'Accept the lab', d: 'On classroom50.org, one click creates your own private repository with the starter code, tests and notebook for that week.', code: 'classroom50.org' },
@@ -48,8 +48,8 @@ const STATUS: Record<string, string> = { open: 'bg-true-soft text-true', closed:
         <p class="mt-2 text-[15px] leading-relaxed text-ink-2">You never need to wait. Open the lab page for the week, follow the numbered steps, and ask your neighbor before you ask the instructor. Stuck for more than 10 minutes on the same error? Write it down and move to the next task; we will fix it together.</p>
       </div>
       <div class="card p-6">
-        <p class="eyebrow">How labs count</p>
-        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">{course.assessment.labsNote} Labs are also where you build the skills for the <a class="link" href={href('/project')}>semester project</a>.</p>
+        <p class="eyebrow">Deadlines and how labs count</p>
+        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">Every lab is due on the <strong class="text-ink">Friday of its week at 23:59</strong>; late work loses 10% per day, up to five days. {course.assessment.labsNote} Labs are also where you build the skills for the <a class="link" href={href('/project')}>semester project</a>.</p>
       </div>
     </div>
   </section>
@@ -64,7 +64,7 @@ const STATUS: Record<string, string> = { open: 'bg-true-soft text-true', closed:
             <span class="min-w-0">
               <span class="block font-semibold text-ink group-hover:text-brand">{l.data.title}</span>
               <span class="block text-sm text-ink-2">{l.data.description}</span>
-              <span class="mt-1 block font-mono text-[11px] text-ink-3">week {l.data.week} · {l.data.duration} · {l.data.topics.join(' · ')}</span>
+              <span class="mt-1 block font-mono text-[11px] text-ink-3">week {l.data.week} · due {formatDue(labDue(l))} · {l.data.topics.join(' · ')}</span>
             </span>
             <span class:list={['justify-self-start rounded-md px-2 py-1 font-mono text-[11px] font-semibold uppercase sm:justify-self-end', STATUS[l.data.status]]}>{l.data.status === 'draft' ? 'coming soon' : l.data.status}</span>
           </a>

@@ -6,7 +6,7 @@ import Step from '@/components/Step.astro';
 import NotebookEmbed from '@/components/NotebookEmbed.astro';
 import LogicPlayground from '@/components/LogicPlayground.astro';
 import { render } from 'astro:content';
-import { getLabsSorted, href, weekHref, labHref, course, acceptCmd, formatDate } from '@/lib/site';
+import { getLabsSorted, href, weekHref, labHref, course, acceptCmd, labDue, formatDue } from '@/lib/site';
 
 export async function getStaticPaths() {
   const labs = await getLabsSorted();
@@ -44,7 +44,7 @@ const repo = templateMode ? `YOUR-USERNAME/${course.classroom.slug}-${d.assignme
           ['assignment', d.assignment],
           ['time', d.duration],
           ['points', `${d.points} (autograded)`],
-          ['due', d.due ? `${formatDate(d.due)} ${d.due.slice(11)}` : 'see announcement'],
+          ['due', formatDue(labDue(lab)) || 'see announcement'],
         ].map(([k, v]) => (
           <div class="bg-card p-4"><dt class="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">{k}</dt><dd class="mt-1 font-mono text-ink">{v}</dd></div>
         ))}

@@ -4,7 +4,7 @@ import LogicPlayground from '@/components/LogicPlayground.astro';
 import SemesterStrip from '@/components/SemesterStrip.astro';
 import SectionHeading from '@/components/SectionHeading.astro';
 import Channels from '@/components/Channels.astro';
-import { course, modules, href, getWeeksSorted, getLabsSorted, weekHref, labHref, formatDateObj, moduleColorVar, currentWeek } from '@/lib/site';
+import { course, modules, href, getWeeksSorted, getLabsSorted, weekHref, labHref, formatDateObj, moduleColorVar, currentWeek, labDue, formatDue } from '@/lib/site';
 import { getCollection } from 'astro:content';
 
 const weeks = await getWeeksSorted();
@@ -154,7 +154,7 @@ const day = [
                 <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-ink font-mono text-sm font-semibold text-paper">L{l.data.lab}</span>
                 <span class="min-w-0">
                   <span class="block font-semibold text-ink group-hover:text-brand">{l.data.title}</span>
-                  <span class="block text-sm text-ink-3">Week {l.data.week} · {l.data.duration} · {l.data.status === 'open' ? 'open now' : l.data.status}</span>
+                  <span class="block text-sm text-ink-3">Week {l.data.week} · due {formatDue(labDue(l))} · {l.data.status === 'open' ? 'open now' : l.data.status}</span>
                 </span>
               </a>
             </li>

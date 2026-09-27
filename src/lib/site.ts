@@ -73,6 +73,24 @@ export function repoName(assignment: string) {
 
 export const moduleColorVar = (m: Module) => `var(--mod-${m.color})`;
 
+/** Lab deadline: the lab's own `due`, otherwise Friday 23:59 of its week ("YYYY-MM-DD HH:mm"). */
+export function labDue(lab: Lab): string {
+  if (lab.data.due) return lab.data.due;
+  const monday = scheduleOf(lab.data.week)?.date;
+  if (!monday) return '';
+  const d = new Date(monday + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 4);
+  return `${d.toISOString().slice(0, 10)} 23:59`;
+}
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** "Fri, Oct 2 · 23:59" */
+export function formatDue(due: string): string {
+  if (!due) return '';
+  const d = new Date(due.slice(0, 10) + 'T12:00:00Z');
+  return `${WEEKDAYS[d.getUTCDay()]}, ${formatDate(due)} · ${due.slice(11) || '23:59'}`;
+}
+
 /** The week students should look at: today's class, else the next upcoming one (evaluated at build time). */
 export function currentWeek(today = new Date()): number {
   const iso = today.toISOString().slice(0, 10);

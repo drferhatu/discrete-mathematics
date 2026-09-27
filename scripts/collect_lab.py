@@ -14,7 +14,8 @@ What this script does:
   5. writes private/grades/<lab>.csv (gitignored) and prints a summary.
 
 Usage:
-  /opt/miniconda3/envs/ferhat_ml/bin/python scripts/collect_lab.py lab01 --due "2026-10-04 23:59"
+  /opt/miniconda3/envs/ferhat_ml/bin/python scripts/collect_lab.py lab01          # deadline read from the lab page
+  ... --due "2026-10-02 23:59"                                                        # or given explicitly
   ... --repos alice/dm-2026-lab01 bob/dm-2026-lab01   # grade only these
   ... --no-accept                                     # do not accept invitations
 
@@ -117,10 +118,24 @@ def field(readme, name):
     return m.group(1) if m and not m.group(1).startswith("<!--") else ""
 
 
+def lab_due(lab):
+    """`due:` of the lab page whose assignment is <lab>, else Friday 23:59 of its week."""
+    for p in sorted((ROOT / "content" / "labs").glob("*.md*")):
+        fm = p.read_text(encoding="utf-8").split("---")[1]
+        if re.search(rf"^assignment:\s*{lab}\s*$", fm, re.M):
+            if m := re.search(r'^due:\s*"?(\d{4}-\d\d-\d\d \d\d:\d\d)"?', fm, re.M):
+                return m.group(1)
+            week = int(re.search(r"^week:\s*(\d+)", fm, re.M).group(1))
+            sched = json.loads((ROOT / "content" / "data" / "schedule.json").read_text(encoding="utf-8"))["weeks"]
+            monday = datetime.strptime(next(r["date"] for r in sched if r["week"] == week), "%Y-%m-%d")
+            return (monday + timedelta(days=4)).strftime("%Y-%m-%d 23:59")
+    raise SystemExit(f"no lab page with assignment: {lab} (give --due)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("lab")
-    ap.add_argument("--due", required=True, help='local time, e.g. "2026-10-04 23:59"')
+    ap.add_argument("--due", help='local time, e.g. "2026-10-02 23:59" (default: from content/labs, else Friday of the lab week)')
     ap.add_argument("--points", type=float, default=10)
     ap.add_argument("--late-days", type=int, default=5, help="accept late pushes up to N days, 10%% off per started day")
     ap.add_argument("--repos", nargs="*", help="grade only these owner/name repositories")
@@ -129,6 +144,8 @@ def main():
     a = ap.parse_args()
 
     repo_name = f"{COURSE['classroom']['slug']}-{a.lab}".lower()
+    a.due = a.due or lab_due(a.lab)
+    print(f"· deadline {a.due} (Türkiye time)")
     due = datetime.strptime(a.due, "%Y-%m-%d %H:%M").replace(tzinfo=TZ).astimezone(timezone.utc)
     hard_stop = due + timedelta(days=a.late_days)
 
