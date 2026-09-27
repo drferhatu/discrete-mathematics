@@ -17,6 +17,9 @@ export default defineConfig({
   site,
   base,
   trailingSlash: 'ignore',
+  // Inline CSS into each page: GitHub Pages caches HTML for ~10 minutes, and a cached page pointing at a
+  // renamed (hashed) stylesheet would otherwise render unstyled right after every deploy.
+  build: { inlineStylesheets: 'always' },
   integrations: [mdx(), sitemap()],
   markdown: {
     remarkPlugins: [remarkMath, remarkCallouts],
