@@ -7,6 +7,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import remarkCallouts from './src/lib/remark-callouts.mjs';
 import rehypeBaseLinks from './src/lib/rehype-base-links.mjs';
+import rehypeExternalLinks from './src/lib/rehype-external-links.mjs';
 
 // GitHub Pages: https://drferhatu.github.io/discrete-mathematics/
 // For a custom domain, build with SITE_URL and BASE_PATH=/ environment variables.
@@ -23,7 +24,7 @@ export default defineConfig({
   integrations: [mdx(), sitemap()],
   markdown: {
     remarkPlugins: [remarkMath, remarkCallouts],
-    rehypePlugins: [[rehypeKatex, { strict: false }], [rehypeBaseLinks, { base }]],
+    rehypePlugins: [[rehypeKatex, { strict: false }], [rehypeBaseLinks, { base }], [rehypeExternalLinks, { site: site + base }]],
     shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' }, wrap: true },
   },
   vite: { plugins: [tailwindcss()] },
