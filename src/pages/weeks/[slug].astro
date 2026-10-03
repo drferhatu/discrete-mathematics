@@ -7,7 +7,7 @@ import LogicPlayground from '@/components/LogicPlayground.astro';
 import Terminal from '@/components/Terminal.astro';
 import NotebookEmbed from '@/components/NotebookEmbed.astro';
 import { render, getCollection } from 'astro:content';
-import { getWeeksSorted, moduleOf, moduleColorVar, scheduleOf, formatDate, STATUS_LABEL, href, weekSlug, labHref, pad } from '@/lib/site';
+import { getWeeksSorted, moduleOf, moduleColorVar, scheduleOf, formatDate, STATUS_LABEL, href, weekSlug, labHref, pad, labStartUrl, labDue, formatDue } from '@/lib/site';
 
 export async function getStaticPaths() {
   const weeks = await getWeeksSorted();
@@ -53,6 +53,7 @@ const tocAfter = [
         {d.reading && <span class="rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink-2"><span class="eyebrow mr-2">Read</span>{d.reading}</span>}
         {d.slides.map((sl) => <a href={href(`/slides/${sl.file}`)} target="_blank" class="rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium text-ink hover:border-ink">⎙ {sl.title}</a>)}
         {lab && <a href={labHref(lab.id)} class="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper hover:bg-brand"><span class="font-mono text-[#ffb08a]">&gt;_</span> Lab {lab.data.lab}: {lab.data.title}</a>}
+        {lab && lab.data.status === 'open' && <a href={labStartUrl(lab)} target="_blank" rel="noopener" class="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white hover:brightness-110">{lab.data.mode === 'template' ? 'Create your copy ↗' : `Accept Lab ${lab.data.lab} ↗`}</a>}
       </div>
     </div>
   </header>
@@ -107,13 +108,16 @@ const tocAfter = [
       {lab && (
         <section>
           <h2 id="lab">Lab {lab.data.lab}: {lab.data.title}</h2>
-          <a href={labHref(lab.id)} class="not-prose group mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-card p-5 !no-underline hover:border-ink">
-            <span class="min-w-0">
-              <span class="block text-ink-2">{lab.data.description}</span>
-              <span class="mt-2 block font-mono text-xs text-ink-3">{lab.data.duration} · {lab.data.points} points · {lab.data.status === 'open' ? 'open now' : lab.data.status}</span>
-            </span>
-            <span class="btn-primary">Open lab instructions →</span>
-          </a>
+          <div class="mt-4 rounded-2xl border border-line bg-card p-5">
+            <p class="!mt-0 text-ink-2">{lab.data.description}</p>
+            <p class="!mt-2 font-mono text-xs text-ink-3">due {formatDue(labDue(lab))} · {lab.data.points} points · {lab.data.status === 'open' ? 'open now' : `opens in week ${lab.data.week}`}</p>
+            <div class="!mt-4 flex flex-wrap gap-2">
+              {lab.data.status === 'open' && (
+                <a href={labStartUrl(lab)} target="_blank" rel="noopener" class="btn-accent !text-white !no-underline">{lab.data.mode === 'template' ? 'Create your copy ↗' : `Accept Lab ${lab.data.lab} on Classroom 50 ↗`}</a>
+              )}
+              <a href={labHref(lab.id)} class="btn-primary !text-paper !no-underline">Step-by-step instructions →</a>
+            </div>
+          </div>
         </section>
       )}
 

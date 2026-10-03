@@ -63,6 +63,16 @@ export const STATUS_LABEL: Record<string, string> = {
   exam: 'Exam week',
 };
 
+/**
+ * Where a student starts a lab: the Classroom 50 accept page (classroom50 mode, derived from the
+ * assignment slug unless `acceptUrl` overrides it) or the template's "create a copy" form (template mode).
+ */
+export function labStartUrl(lab: Lab): string {
+  const c = course.classroom;
+  if (lab.data.mode === 'template') return `https://github.com/${c.org}/${c.prefix}-${lab.data.assignment}-template/generate`;
+  return lab.data.acceptUrl || `${c.web}/${c.org}/${c.slug}/assignments/${lab.data.assignment}/accept`;
+}
+
 /** Classroom 50 accept command for a lab assignment */
 export function acceptCmd(assignment: string) {
   return `gh student accept ${course.classroom.org} ${course.classroom.slug} ${assignment}`;

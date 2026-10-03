@@ -6,7 +6,7 @@ import Step from '@/components/Step.astro';
 import NotebookEmbed from '@/components/NotebookEmbed.astro';
 import LogicPlayground from '@/components/LogicPlayground.astro';
 import { render } from 'astro:content';
-import { getLabsSorted, href, weekHref, labHref, course, acceptCmd, labDue, formatDue } from '@/lib/site';
+import { getLabsSorted, href, weekHref, labHref, course, acceptCmd, labDue, formatDue, labStartUrl } from '@/lib/site';
 
 export async function getStaticPaths() {
   const labs = await getLabsSorted();
@@ -17,7 +17,8 @@ const d = lab.data;
 const { Content, headings } = await render(lab);
 const templateMode = d.mode === 'template';
 const templateRepo = `${course.classroom.org}/${course.classroom.prefix}-${d.assignment}-template`;
-const createUrl = `https://github.com/${templateRepo}/generate`;
+const createUrl = labStartUrl(lab);
+const acceptUrl = labStartUrl(lab);
 const repo = templateMode ? `YOUR-USERNAME/${course.classroom.prefix}-${d.assignment}` : `${course.classroom.org}/${course.classroom.slug}-${d.assignment}-USERNAME`;
 ---
 <BaseLayout title={`Lab ${d.lab}: ${d.title}`} description={d.description} ogType="article">
@@ -34,7 +35,7 @@ const repo = templateMode ? `YOUR-USERNAME/${course.classroom.prefix}-${d.assign
           <div class="mt-6 flex flex-wrap gap-3">
             {templateMode
               ? <a href={createUrl} target="_blank" rel="noopener" class="btn-accent">Create your copy ↗</a>
-              : <a href={d.acceptUrl || course.classroom.web} target="_blank" rel="noopener" class="btn-accent">Accept lab {d.assignment} ↗</a>}
+              : <a href={acceptUrl} target="_blank" rel="noopener" class="btn-accent">Accept lab {d.assignment} ↗</a>}
             <a href="#steps" class="btn-ghost">Step-by-step ↓</a>
           </div>
         )}
@@ -80,7 +81,7 @@ const repo = templateMode ? `YOUR-USERNAME/${course.classroom.prefix}-${d.assign
             </>
           ) : (
             <>
-              <a href={d.acceptUrl || course.classroom.web} target="_blank" rel="noopener" class="btn-primary mt-4 w-full justify-center !text-xs">Accept on Classroom 50 ↗</a>
+              {d.status === 'open' ? <a href={acceptUrl} target="_blank" rel="noopener" class="btn-primary mt-4 w-full justify-center !text-xs">Accept on Classroom 50 ↗</a> : <p class="mt-4 rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">Opens in week {d.week}</p>}
               <p class="mt-3 text-xs text-ink-3">CLI alternative:</p>
               <p class="break-all font-mono text-[11px] text-ink-2">{acceptCmd(d.assignment)}</p>
             </>
