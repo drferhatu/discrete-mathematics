@@ -6,7 +6,7 @@ description: "Implement power sets and Cartesian products, verify set identities
 assignment: lab07
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["sets_lab.py"]
 topics: ["power set", "Cartesian product", "Jaccard"]
 ---

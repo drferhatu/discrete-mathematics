@@ -1,3 +1,3 @@
 [
-  { "name": "Lab 2 tests (circuits.py, puzzles.py)", "type": "python", "setup": "python3 -m pip install -q -r requirements.txt", "run": "python -m pytest -q tests", "timeout": 120, "points": 10 }
+  { "name": "Lab 2 tests (circuits.py, puzzles.py)", "type": "python", "setup": "python3 -m pip install -q -r requirements.txt", "run": "python -m pytest -q tests", "timeout": 120, "points": 100 }
 ]

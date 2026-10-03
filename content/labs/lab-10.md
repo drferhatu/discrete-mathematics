@@ -6,7 +6,7 @@ description: "Write recursive functions, check them against induction proofs, an
 assignment: lab10
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["recursion.py"]
 topics: ["recursion", "induction", "timing"]
 ---

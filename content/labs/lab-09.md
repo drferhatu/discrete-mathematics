@@ -6,7 +6,7 @@ description: "Compute recurrences three ways, check summation formulas, and run 
 assignment: lab09
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["sequences.py"]
 topics: ["recurrences", "memoization", "diagonalization"]
 ---

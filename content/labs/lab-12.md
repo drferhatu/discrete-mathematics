@@ -6,7 +6,7 @@ description: "Build adjacency lists and matrices, verify the handshake theorem, 
 assignment: lab12
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["graphs.py"]
 topics: ["adjacency list", "BFS", "bipartite"]
 ---

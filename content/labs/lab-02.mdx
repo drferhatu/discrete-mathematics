@@ -8,7 +8,7 @@ mode: classroom50
 status: open
 acceptUrl: "https://classroom50.org/FiratUniversity-IJDP-SoftEng/discrete-mathematics/assignments/lab02/accept"
 duration: "75 min + finish at home"
-points: 10
+points: 100
 files: ["circuits.py", "puzzles.py"]
 topics: ["logic gates", "equivalence", "full adder", "NAND", "Knights & Knaves", "consistency"]
 notebook: { file: "labs/templates/lab02/lab02.ipynb", title: "Lab 2 · Explore: XOR secrets, self-healing disks and NAND" }
@@ -59,6 +59,9 @@ You now have a private repository called `discrete-mathematics-lab02-yourusernam
 <Step n={3} title="Open it in Codespaces" time="2 min" id="codespace">
 
 On your repository page: green **Code** button → **Codespaces** tab → **Create codespace on main**. Exactly like Lab 1; the first start takes a minute or two.
+
+> [!tip] Prefer your own computer or another online editor?
+> That is fine. Work wherever you like and submit from the browser: see [Other ways to work and submit](#other-ways-to-work-and-submit) below.
 
 </Step>
 
@@ -190,6 +193,42 @@ About two minutes later:
 Push as often as you like before **Friday 23:59**; the last push before the deadline counts.
 
 </Step>
+
+## Other ways to work and submit
+
+Codespaces is the easiest route, but it is not the only one. You can write your code **anywhere** and hand it in **from the browser**. Grading is exactly the same: every change that lands in your repository is graded automatically.
+
+### Where you can work
+
+| Option | What to do |
+|---|---|
+| **Your own computer** | Install [Python 3.12+](https://www.python.org/downloads/) and an editor such as [VS Code](https://code.visualstudio.com/). Download `circuits.py`, `puzzles.py`, `check.py` and the `tests` folder from your repository (green **Code** button → **Download ZIP**), unzip, then run `pip install pytest` and `python check.py`. |
+| **cs50.dev** | Open [cs50.dev](https://cs50.dev), create `circuits.py` and `puzzles.py`, paste the starter code from your repository and work there. Run `python circuits.py` and `python puzzles.py` to try your functions. |
+| **Google Colab or any online Python** | Paste one function at a time into a cell and test it on a few inputs. Good for experimenting; the official checks run on GitHub. |
+| **github.dev** | On your repository page press the <span class="kbd">.</span> key. A light VS Code opens in the browser for editing (it cannot run Python, but you can commit from it). |
+
+### Submit from the browser (no terminal, no git)
+
+When your solution is ready in a file on your computer or in another editor, put it into your repository on github.com in one of two ways.
+
+**A. Paste into the file**
+
+1. Open your repository `discrete-mathematics-lab02-yourusername` on github.com.
+2. Click `circuits.py`, then the **pencil icon ✎** (Edit this file) at the top right of the file.
+3. Select everything (<span class="kbd">Ctrl</span> + <span class="kbd">A</span>, or <span class="kbd">⌘</span> + <span class="kbd">A</span> on a Mac) and paste your complete file.
+4. Click **Commit changes…**, write a short message such as `Lab 2 circuits`, keep **Commit directly to the main branch** selected, and click **Commit changes**.
+5. Do the same for `puzzles.py`.
+
+**B. Upload the files**
+
+1. On your repository page click **Add file → Upload files**.
+2. Drag `circuits.py` and `puzzles.py` from your computer into the box. Files with the same name **replace** the starter files; that is what you want.
+3. Click **Commit changes**.
+
+> [!warning] Keep the names and the structure
+> Paste or upload the **whole file**, not only the functions you changed, and keep the file names exactly `circuits.py` and `puzzles.py`. Do not rename functions. Do not upload into a new folder; the files must stay at the top level of the repository.
+
+**Check your grade the same way.** About two minutes after each commit, a new **Release** with your score appears on the right of your repository page. Every commit counts as a submission, the last one before Friday 23:59 is the one that matters, and you may mix methods (for example, push from Codespaces on Monday and paste a fix from home on Wednesday).
 
 ## Explore: the notebook
 

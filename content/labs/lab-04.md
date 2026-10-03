@@ -6,7 +6,7 @@ description: "Test nested-quantifier properties of a small social network and fi
 assignment: lab04
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["network.py"]
 topics: ["∀∃ vs ∃∀", "witnesses", "counterexamples"]
 ---

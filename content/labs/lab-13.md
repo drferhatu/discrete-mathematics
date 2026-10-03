@@ -6,7 +6,7 @@ description: "Build the conflict graph of real courses and color it greedily to 
 assignment: lab13
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["coloring.py"]
 topics: ["greedy coloring", "scheduling", "trees"]
 ---

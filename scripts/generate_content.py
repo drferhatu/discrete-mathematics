@@ -402,7 +402,7 @@ def lab_file(p):
     fm += f"assignment: {p['assignment']}\n"
     fm += "status: draft\n"
     fm += 'duration: "75 min"\n'
-    fm += "points: 10\n"
+    fm += "points: 100\n"
     fm += f"files: {json.dumps(p['files'])}\n"
     fm += f"topics: {json.dumps(p['topics'], ensure_ascii=False)}\n"
     fm += "---\n\n"

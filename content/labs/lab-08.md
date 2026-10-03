@@ -6,7 +6,7 @@ description: "Check properties of relations, compute equivalence classes and tra
 assignment: lab08
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["relations.py"]
 topics: ["reflexive/symmetric/transitive", "closure", "hash functions"]
 ---

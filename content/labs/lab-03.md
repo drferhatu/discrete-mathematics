@@ -6,7 +6,7 @@ description: "Evaluate ∀ and ∃ statements over a student–course dataset wi
 assignment: lab03
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["quantifiers.py"]
 topics: ["all/any", "domains", "negation"]
 ---

@@ -6,7 +6,7 @@ description: "Test famous claims about primes and integers by computer, find cou
 assignment: lab06
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["hunt.py"]
 topics: ["primes", "counterexamples", "exhaustive proof"]
 ---

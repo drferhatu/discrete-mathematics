@@ -6,7 +6,7 @@ description: "Implement forward chaining with modus ponens, then use it to answe
 assignment: lab05
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["inference.py"]
 topics: ["modus ponens", "forward chaining", "valid arguments"]
 ---

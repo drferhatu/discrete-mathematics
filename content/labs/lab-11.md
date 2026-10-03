@@ -6,7 +6,7 @@ description: "Count with itertools, verify formulas, estimate password spaces an
 assignment: lab11
 status: draft
 duration: "75 min"
-points: 10
+points: 100
 files: ["counting.py"]
 topics: ["itertools", "permutations", "simulation"]
 ---
