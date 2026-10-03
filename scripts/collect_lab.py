@@ -18,6 +18,7 @@ Usage:
   ... --due "2026-10-02 23:59"                                                        # or given explicitly
   ... --repos alice/dm-2026-lab01 bob/dm-2026-lab01   # grade only these
   ... --no-accept                                     # do not accept invitations
+  ... --extra bob/discrete-lab1                       # also accept + grade misnamed repositories
 
 Note: student code runs on this machine (inside a temporary folder, without your GitHub token,
 with a timeout). Only run it for your own course's submissions.
@@ -140,6 +141,7 @@ def main():
     ap.add_argument("--late-days", type=int, default=5, help="accept late pushes up to N days, 10%% off per started day")
     ap.add_argument("--repos", nargs="*", help="grade only these owner/name repositories")
     ap.add_argument("--no-accept", action="store_true")
+    ap.add_argument("--extra", nargs="*", default=[], help="misnamed owner/name repositories to accept and grade too")
     ap.add_argument("--timeout", type=int, default=120)
     a = ap.parse_args()
 
@@ -151,7 +153,13 @@ def main():
 
     if not a.no_accept and not a.repos:
         print(f"✓ accepted {accept_invitations(repo_name)} invitation(s) for {repo_name}")
-    repos = a.repos or shared_repos(repo_name)
+    if a.extra and not a.no_accept:
+        wanted = {r.lower() for r in a.extra}
+        for inv in gh_all("user/repository_invitations"):
+            if inv["repository"]["full_name"].lower() in wanted:
+                gh("-X", "PATCH", f"user/repository_invitations/{inv['id']}")
+                print(f"✓ accepted {inv['repository']['full_name']}")
+    repos = (a.repos or shared_repos(repo_name)) + [r for r in a.extra if r not in (a.repos or [])]
     print(f"· {len(repos)} repositories to grade\n")
 
     rows = []
@@ -181,6 +189,24 @@ def main():
             row["note"] = f"error: {e}"
             print(f"✗ {owner:<24} {row['note']}")
         rows.append(row)
+
+    best = {}
+    for r in rows:
+        k = r["github"].lower()
+        if k not in best or r["score"] > best[k]["score"]:
+            n = best[k]["_n"] + 1 if k in best else 1
+            best[k] = {**r, "_n": n}
+        else:
+            best[k]["_n"] += 1
+    rows = []
+    for r in best.values():
+        if r["_n"] > 1:
+            r["note"] = "; ".join(x for x in [r["note"], f"best of {r['_n']} repositories"] if x)
+        if r["repo"].split("/")[1].lower() != repo_name:
+            r["note"] = "; ".join(x for x in [r["note"], "misnamed repository"] if x)
+        r.pop("_n")
+        rows.append(r)
+    rows.sort(key=lambda r: r["github"].lower())
 
     out = ROOT / "private" / "grades" / f"{a.lab}.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
