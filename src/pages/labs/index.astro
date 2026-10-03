@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import SectionHeading from '@/components/SectionHeading.astro';
-import { getLabsSorted, labHref, href, course, labDue, formatDue } from '@/lib/site';
+import { getLabsSorted, labHref, href, course, labDue, formatDue, labWeekDate } from '@/lib/site';
 const labs = await getLabsSorted();
 const flow = [
   { k: '01', t: 'Accept the lab', d: 'On classroom50.org, one click creates your own private repository with the starter code, tests and notebook for that week.', code: 'classroom50.org' },
@@ -64,7 +64,7 @@ const STATUS: Record<string, string> = { open: 'bg-true-soft text-true', closed:
             <span class="min-w-0">
               <span class="block font-semibold text-ink group-hover:text-brand">{l.data.title}</span>
               <span class="block text-sm text-ink-2">{l.data.description}</span>
-              <span class="mt-1 block font-mono text-[11px] text-ink-3">week {l.data.week} · due {formatDue(labDue(l))} · {l.data.topics.join(' · ')}</span>
+              <span class="mt-1 block font-mono text-[11px] text-ink-3">week {l.data.week} · {labWeekDate(l)} · due {formatDue(labDue(l))} · {l.data.topics.join(' · ')}</span>
             </span>
             <span class:list={['justify-self-start rounded-md px-2 py-1 font-mono text-[11px] font-semibold uppercase sm:justify-self-end', STATUS[l.data.status]]}>{l.data.status === 'draft' ? 'coming soon' : l.data.status}</span>
           </a>

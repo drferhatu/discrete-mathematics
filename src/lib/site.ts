@@ -94,6 +94,14 @@ export function labDue(lab: Lab): string {
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** Date of the class the lab belongs to (the Monday of its week), e.g. "Mon, Oct 5". */
+export function labWeekDate(lab: Lab, long = false): string {
+  const d = scheduleOf(lab.data.week)?.date;
+  if (!d) return '';
+  const wd = WEEKDAYS[new Date(d + 'T12:00:00Z').getUTCDay()];
+  return long ? `${wd === 'Mon' ? 'Monday' : wd}, ${formatDate(d, true)}` : `${wd}, ${formatDate(d)}`;
+}
+
 /** "Fri, Oct 2 · 23:59" */
 export function formatDue(due: string): string {
   if (!due) return '';
