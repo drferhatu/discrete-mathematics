@@ -20,7 +20,7 @@ const STATUS: Record<string, string> = { open: 'bg-true-soft text-true', closed:
       <p class="lede mt-6 max-w-2xl">Every lecture has a lab. You turn the week’s idea into Python, tests check you instantly, and your score appears on GitHub. The workflow comes from Harvard’s CS50 team: Classroom 50 for assignments and autograding, VS Code in the browser for coding, fast feedback all the way.</p>
       <div class="mt-8 flex flex-wrap gap-3">
         <a href={href('/guides/lab-setup')} class="btn-primary">First-time setup (do this once)</a>
-        <a href={course.classroom.web} target="_blank" rel="noopener" class="btn-ghost">classroom50.org ↗</a>
+        <a href={`${course.classroom.web}/${course.classroom.org}/${course.classroom.slug}`} target="_blank" rel="noopener" class="btn-ghost">Our classroom on Classroom 50 ↗</a>
         <a href={course.classroom.editor} target="_blank" rel="noopener" class="btn-ghost">Your codespaces ↗</a>
       </div>
     </div>
