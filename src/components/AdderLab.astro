@@ -1,0 +1,146 @@
+---
+/**
+ * Interactive full adder (click the inputs, wires light up) and a 4-bit ripple-carry adder
+ * built from four of them. Week 3: logic circuits.
+ */
+interface Props { id?: string; }
+const { id = 'adder' } = Astro.props;
+// wire paths of the full adder: two half adders + an OR gate
+const wires = [
+  { w: 'a', d: 'M46 50 H90 V44 H112 M90 50 V116 H112' },
+  { w: 'b', d: 'M46 90 H76 V60 H112 M76 90 V132 H112' },
+  { w: 'cin', d: 'M46 180 H246 V76 H272 M246 180 V176 H272' },
+  { w: 'x', d: 'M184 52 H226 V60 H272 M226 60 V160 H272' },
+  { w: 'c1', d: 'M184 124 H392 V128 H412' },
+  { w: 'c2', d: 'M344 168 H392 V144 H412' },
+  { w: 's', d: 'M344 68 H516' },
+  { w: 'cout', d: 'M484 136 H516' },
+];
+const gates = [
+  { x: 112, y: 32, label: 'XOR' },
+  { x: 112, y: 104, label: 'AND' },
+  { x: 272, y: 48, label: 'XOR' },
+  { x: 272, y: 148, label: 'AND' },
+  { x: 412, y: 116, label: 'OR' },
+];
+---
+<div class="adder-lab card my-8 overflow-hidden shadow-soft" data-adder id={id}>
+  <div class="flex items-center justify-between border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">full adder · click A, B, Cin</span>
+    <span class="font-mono text-[11px] text-ink-3">S = A ⊕ B ⊕ Cin · Cout = (A ∧ B) ∨ (Cin ∧ (A ⊕ B))</span>
+  </div>
+
+  <div class="grid gap-4 p-4 sm:p-5 lg:grid-cols-[auto_1fr] lg:items-center">
+    <div class="flex gap-2 lg:flex-col">
+      {['a', 'b', 'cin'].map((k) => (
+        <button type="button" data-in={k} aria-pressed="false"
+          class="adder-in w-20 rounded-lg border border-line-2 px-3 py-2 text-left font-mono text-sm">
+          <span class="block text-[10px] uppercase tracking-[0.14em] text-ink-3">{k === 'cin' ? 'Cin' : k.toUpperCase()}</span>
+          <span data-val class="text-lg font-semibold">0</span>
+        </button>
+      ))}
+    </div>
+    <svg viewBox="0 0 560 210" class="w-full" role="img" aria-label="Full adder made of two XOR gates, two AND gates and one OR gate">
+      {wires.map((x) => <path data-w={x.w} d={x.d} fill="none" stroke-width="2.5" stroke-linejoin="round" class="adder-wire" />)}
+      {gates.map((g) => (
+        <g>
+          <rect x={g.x} y={g.y} width="72" height="40" rx="8" class="adder-gate" />
+          <text x={g.x + 36} y={g.y + 25} text-anchor="middle" class="adder-label">{g.label}</text>
+        </g>
+      ))}
+      <text x="20" y="54" class="adder-io">A</text>
+      <text x="20" y="94" class="adder-io">B</text>
+      <text x="12" y="184" class="adder-io">Cin</text>
+      <text x="522" y="72" class="adder-io">S</text>
+      <text x="522" y="140" class="adder-io">Cout</text>
+      <text x="200" y="46" class="adder-note">A⊕B</text>
+      <text x="350" y="62" data-out="s" class="adder-out">0</text>
+      <text x="490" y="130" data-out="cout" class="adder-out">0</text>
+    </svg>
+  </div>
+
+  <div class="border-t border-line p-4 sm:p-5">
+    <p class="eyebrow">Chain four of them: a 4-bit ripple-carry adder</p>
+    <div class="mt-3 flex flex-wrap items-end gap-3">
+      <label class="block"><span class="font-mono text-[11px] text-ink-3">A (0–15)</span>
+        <input data-ra type="number" min="0" max="15" value="11" class="mt-1 block w-24 rounded-lg border border-line-2 bg-paper px-3 py-2 font-mono text-ink outline-none focus:border-brand" /></label>
+      <span class="pb-2 font-mono text-lg text-ink-3">+</span>
+      <label class="block"><span class="font-mono text-[11px] text-ink-3">B (0–15)</span>
+        <input data-rb type="number" min="0" max="15" value="6" class="mt-1 block w-24 rounded-lg border border-line-2 bg-paper px-3 py-2 font-mono text-ink outline-none focus:border-brand" /></label>
+      <span class="pb-2 font-mono text-lg text-ink-3">=</span>
+      <span data-rsum class="pb-2 font-mono text-lg font-semibold text-ink"></span>
+    </div>
+    <div class="mt-4 overflow-x-auto">
+      <table data-rtable class="w-full min-w-[420px] border-collapse text-center font-mono text-[13px]"></table>
+    </div>
+    <p class="mt-3 text-xs text-ink-3">Read right to left: each column is one full adder. Its carry-out is the next column's carry-in, so the carry “ripples” from bit 0 to bit 3. A carry out of bit 3 means the sum needs a fifth bit: that is <em>overflow</em> in a 4-bit register.</p>
+  </div>
+</div>
+
+<style>
+  .adder-wire { stroke: var(--line-2); transition: stroke 0.15s; }
+  .adder-wire.on { stroke: var(--true); }
+  .adder-gate { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.5; }
+  .adder-label { fill: var(--ink); font: 600 12px var(--font-mono); }
+  .adder-io { fill: var(--ink-2); font: 600 13px var(--font-mono); }
+  .adder-note { fill: var(--ink-3); font: 11px var(--font-mono); }
+  .adder-out { fill: var(--false); font: 700 13px var(--font-mono); }
+  .adder-out.on { fill: var(--true); }
+  .adder-in { background: var(--card); color: var(--ink); }
+  .adder-in[aria-pressed='true'] { background: var(--true-soft); border-color: var(--true); color: var(--true); }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-adder]').forEach((root) => {
+    const state: Record<string, boolean> = { a: false, b: false, cin: false };
+    const full = (a: boolean, b: boolean, c: boolean) => {
+      const x = a !== b;
+      return { x, c1: a && b, c2: x && c, s: x !== c, cout: (a && b) || (x && c) };
+    };
+    const draw = () => {
+      const r = full(state.a, state.b, state.cin);
+      const v: Record<string, boolean> = { ...state, ...r };
+      root.querySelectorAll<SVGPathElement>('[data-w]').forEach((p) => p.classList.toggle('on', v[p.dataset.w!]));
+      root.querySelectorAll<SVGTextElement>('[data-out]').forEach((t) => { const on = v[t.dataset.out!]; t.textContent = on ? '1' : '0'; t.classList.toggle('on', on); });
+      root.querySelectorAll<HTMLButtonElement>('[data-in]').forEach((b) => {
+        const on = state[b.dataset.in!];
+        b.setAttribute('aria-pressed', String(on));
+        b.querySelector('[data-val]')!.textContent = on ? '1' : '0';
+      });
+    };
+    root.querySelectorAll<HTMLButtonElement>('[data-in]').forEach((b) => b.addEventListener('click', () => { state[b.dataset.in!] = !state[b.dataset.in!]; draw(); }));
+    draw();
+
+    // ripple-carry adder
+    const ia = root.querySelector<HTMLInputElement>('[data-ra]')!;
+    const ib = root.querySelector<HTMLInputElement>('[data-rb]')!;
+    const table = root.querySelector<HTMLTableElement>('[data-rtable]')!;
+    const out = root.querySelector<HTMLElement>('[data-rsum]')!;
+    const tv = (b: boolean) => `<span class="tv ${b ? 'tv-1' : 'tv-0'}">${b ? 1 : 0}</span>`;
+    const ripple = () => {
+      const A = Math.max(0, Math.min(15, Math.floor(Number(ia.value) || 0)));
+      const B = Math.max(0, Math.min(15, Math.floor(Number(ib.value) || 0)));
+      let carry = false;
+      const cols: { a: boolean; b: boolean; cin: boolean; s: boolean; cout: boolean }[] = [];
+      for (let i = 0; i < 4; i++) {
+        const a = !!((A >> i) & 1), b = !!((B >> i) & 1);
+        const r = full(a, b, carry);
+        cols.push({ a, b, cin: carry, s: r.s, cout: r.cout });
+        carry = r.cout;
+      }
+      const sum = cols.reduce((acc, c, i) => acc + (c.s ? 1 << i : 0), 0) + (carry ? 16 : 0);
+      const bits = (n: number, w: number) => n.toString(2).padStart(w, '0');
+      out.innerHTML = `${sum} <span class="text-ink-3 text-sm font-normal">= ${carry ? '<span class="text-accent">1</span>' : ''}${bits(sum & 15, 4)}₂${carry ? ' (overflow!)' : ''}</span>`;
+      const th = (t: string) => `<th class="px-2 py-1.5 text-[11px] font-medium text-ink-3">${t}</th>`;
+      const row = (label: string, f: (c: (typeof cols)[number]) => boolean) =>
+        `<tr class="border-t border-line"><td class="px-2 py-1.5 text-left text-[11px] text-ink-3">${label}</td>${[3, 2, 1, 0].map((i) => `<td class="px-2 py-1.5">${tv(f(cols[i]))}</td>`).join('')}</tr>`;
+      table.innerHTML =
+        `<thead><tr>${th('')}${[3, 2, 1, 0].map((i) => th(`bit ${i}`)).join('')}</tr></thead><tbody>` +
+        row('carry in', (c) => c.cin) + row('A', (c) => c.a) + row('B', (c) => c.b) +
+        row('sum S', (c) => c.s) + row('carry out', (c) => c.cout) + '</tbody>';
+    };
+    ia.addEventListener('input', ripple);
+    ib.addEventListener('input', ripple);
+    ripple();
+  });
+</script>

@@ -1,0 +1,436 @@
+---
+week: 3
+title: "Logical Equivalences and Boolean Circuits"
+description: "Biconditional and XOR in depth, the laws of logic, proving and simplifying with equivalences, satisfiability, and how the same laws build the adder inside your CPU."
+module: m1
+status: ready
+reading: "Rosen 1.2–1.3"
+lab: lab-02
+objectives:
+  - "Use the biconditional and exclusive or, state when each is true, and rewrite each with ¬, ∧, ∨."
+  - "Decide whether two formulas are logically equivalent, with a truth table and with a chain of laws."
+  - "Simplify a compound proposition step by step, naming the law used at every step."
+  - "Classify formulas as tautology, contradiction or contingency, and decide whether a set of statements is satisfiable (consistent)."
+  - "Solve small logic puzzles and check system specifications with propositional logic."
+  - "Build half and full adders from logic gates and explain how a CPU adds binary numbers."
+wow:
+  title: "Your CPU adds numbers with the logic you learned last week."
+  text: "A one-bit adder is just two formulas: sum = p ⊕ q and carry = p ∧ q. Chain 64 of them and you have the adder in your laptop. On this page you click the inputs of a real full adder and watch a 4-bit adder ripple its carry; in the lab you build it in Python."
+industry:
+  - {"t": "Chip design", "d": "Hardware tools minimize Boolean formulas with exactly these laws, so that chips use fewer transistors, less power and less time."}
+  - {"t": "SAT solvers", "d": "Satisfiability solvers verify processors, plan logistics and solve Sudoku by searching for a truth assignment, often with millions of variables."}
+  - {"t": "Clean code", "d": "Refactoring an if-condition is applying De Morgan, distributivity and absorption. A wrong step is a bug that only shows up in one row of the truth table."}
+  - {"t": "Storage and security", "d": "XOR parity lets RAID disks rebuild a dead drive, and XOR with a secret key is the core step of most ciphers."}
+slides:
+  - {"title": "Slides: biconditional, XOR, simplification", "file": "dm-2026-w03-equivalences-xor.pdf"}
+resources:
+  - {"title": "Stanford CS103 truth table tool", "url": "https://web.stanford.edu/class/cs103/tools/truth-table-tool/", "note": "check equivalences you derive by hand"}
+  - {"title": "The Nand Game", "url": "https://nandgame.com/", "note": "build a whole computer, starting from NAND gates; the first levels are this week"}
+  - {"title": "Adder (electronics), Wikipedia", "url": "https://en.wikipedia.org/wiki/Adder_(electronics)", "note": "half, full and ripple-carry adders"}
+  - {"title": "Boolean satisfiability problem, Wikipedia", "url": "https://en.wikipedia.org/wiki/Boolean_satisfiability_problem", "note": "why SAT is the most famous hard problem"}
+  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Section 3.1, propositional logic and equivalences"}
+  - {"title": "Peter Norvig: Solving every Sudoku puzzle", "url": "https://norvig.com/sudoku.html", "note": "constraint propagation, a close cousin of SAT solving"}
+tags: ["equivalence", "logical equivalence", "De Morgan", "XOR", "biconditional", "tautology", "contradiction", "satisfiability", "SAT", "simplification", "logic gates", "adder", "NAND", "Knights and Knaves"]
+---
+
+import EquivalenceChecker from '@/components/EquivalenceChecker.astro';
+import AdderLab from '@/components/AdderLab.astro';
+
+## Where we are
+
+Last week we built compound propositions and their truth tables. This week asks the next natural question: **when do two different-looking formulas say the same thing?** Answering it gives us three tools you will use for the rest of your career:
+
+1. **Equivalence.** Replacing a formula with a simpler one that means exactly the same, which is what refactoring a condition in code really is.
+2. **Satisfiability.** Deciding whether a set of requirements can all be true at once.
+3. **Circuits.** Seeing that a formula *is* a piece of hardware.
+
+We start by looking more closely at the two connectives we met briefly last week, ↔ and ⊕.
+
+## The biconditional, in depth
+
+> [!definition] Biconditional
+> $p \leftrightarrow q$ (“$p$ if and only if $q$”, “$p$ iff $q$”) is true exactly when $p$ and $q$ have the **same** truth value.
+
+<table class="tt">
+<thead><tr><th>p</th><th>q</th><th>p → q</th><th>q → p</th><th>p ↔ q</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+</tbody>
+</table>
+
+The table shows where the name comes from: $p \leftrightarrow q$ is the conditional in **both directions**, $(p \to q) \land (q \to p)$. That is why mathematicians use it to state definitions and characterizations: $p$ is both **sufficient** and **necessary** for $q$.
+
+Four properties are worth knowing by heart (T is “always true”, F is “always false”):
+
+| Property | Why |
+|---|---|
+| $p \leftrightarrow p \equiv \mathbf{T}$ | a statement always agrees with itself |
+| $p \leftrightarrow \neg p \equiv \mathbf{F}$ | a statement never agrees with its negation |
+| $p \leftrightarrow \mathbf{T} \equiv p$ | “$p$ iff true” is just $p$ |
+| $p \leftrightarrow \mathbf{F} \equiv \neg p$ | “$p$ iff false” is “not $p$” |
+
+> [!example] Integers
+> For an integer $x$, “$x > 5$ if and only if $x \ge 6$” is true for **every** integer: both sides are true together or false together. For real numbers it fails at $x = 5.5$. The domain matters, a theme that returns in [week 4](/weeks/week-04).
+
+> [!warning] Everyday “if” often means “iff”
+> “You get dessert if you finish your vegetables” usually *means* “if and only if”: no vegetables, no dessert. In mathematics, specifications and code, “if” means only $\to$. When you mean both directions, say **if and only if**.
+
+In code, the biconditional of two booleans is plain equality: `p == q`.
+
+## Exclusive or, in depth
+
+> [!definition] Exclusive or
+> $p \oplus q$ is true exactly when $p$ and $q$ have **different** truth values. It is the negation of the biconditional: $p \oplus q \equiv \neg(p \leftrightarrow q)$.
+
+XOR can be written with the basic connectives in two standard ways. Read them aloud and they make sense:
+
+$$
+p \oplus q \;\equiv\; (p \land \neg q) \lor (\neg p \land q) \qquad\text{“one but not the other”}
+$$
+
+$$
+p \oplus q \;\equiv\; (p \lor q) \land \neg(p \land q) \qquad\text{“at least one, but not both”}
+$$
+
+Its algebra is what makes it so useful in computing:
+
+| Property | Meaning |
+|---|---|
+| $p \oplus \mathbf{F} \equiv p$ | XOR with 0 changes nothing |
+| $p \oplus \mathbf{T} \equiv \neg p$ | XOR with 1 flips the bit |
+| $p \oplus p \equiv \mathbf{F}$ | anything XOR itself is 0 |
+| $p \oplus q \equiv q \oplus p$, $(p \oplus q) \oplus r \equiv p \oplus (q \oplus r)$ | order and grouping do not matter |
+| $(p \oplus k) \oplus k \equiv p$ | XOR twice with the same key gives the original back |
+
+> [!industry] Three places XOR quietly runs the world
+> - **Encryption.** With a secret key bit $k$, the ciphertext is $c = m \oplus k$ and the receiver recovers $m = c \oplus k$. With a truly random key used once, this is the *one-time pad*, which Claude Shannon proved unbreakable in 1949.
+> - **RAID storage.** Three data disks $d_1, d_2, d_3$ plus a parity disk $d_1 \oplus d_2 \oplus d_3$. If disk 2 dies, $d_2 = d_1 \oplus d_3 \oplus \text{parity}$ rebuilds it bit by bit.
+> - **Toggling.** `flag ^= 1` flips a bit; `x ^= mask` flips exactly the bits set in the mask.
+
+## Tautologies, contradictions, contingencies
+
+> [!definition]
+> A compound proposition is a
+> - **tautology** if it is true in every row of its truth table,
+> - **contradiction** if it is false in every row,
+> - **contingency** if it is neither.
+>
+> It is **satisfiable** if at least one row makes it true, that is, if it is not a contradiction.
+
+| Formula | Kind |
+|---|---|
+| $p \lor \neg p$ | tautology (law of excluded middle) |
+| $p \to p$ | tautology |
+| $p \land \neg p$ | contradiction |
+| $p \leftrightarrow \neg p$ | contradiction |
+| $p \land q$ | contingency (true in one row of four) |
+
+There are two ways to decide which kind a formula is: **build its truth table**, or **simplify it** with the laws below until you reach T, F or something that is clearly neither. The truth table always works but grows as $2^n$; simplification is shorter, and it is what you do on paper and in your head.
+
+## Logical equivalence
+
+> [!definition] Logical equivalence
+> Two compound propositions $A$ and $B$ are **logically equivalent**, written $A \equiv B$, if they have the same truth value in every row. Equivalently: $A \equiv B$ exactly when $A \leftrightarrow B$ is a tautology.
+
+> [!note] ≡ is not ↔
+> $\leftrightarrow$ is a connective *inside* a formula; $p \leftrightarrow q$ is itself a proposition that can be true or false. $\equiv$ is a statement *about* two formulas: “these always agree”. Writing $A \equiv B$ is a claim you can be right or wrong about, and the way to settle it is a truth table or a proof.
+
+### Method 1: the truth table
+
+Put both formulas side by side and compare the columns. Is $\neg(p \land q) \equiv \neg p \lor \neg q$?
+
+<table class="tt">
+<thead><tr><th>p</th><th>q</th><th>p ∧ q</th><th>¬(p ∧ q)</th><th>¬p</th><th>¬q</th><th>¬p ∨ ¬q</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+</tbody>
+</table>
+
+The two result columns are identical, so they are equivalent. This is **De Morgan's law**. To show two formulas are **not** equivalent, one row is enough: a single **counterexample**.
+
+Try it yourself. Change the formulas, or click a preset, and the checker either confirms the equivalence or shows the row where they disagree:
+
+<EquivalenceChecker id="eq-week3" />
+
+### Method 2: the laws of logic
+
+Truth tables do not scale and do not explain *why*. The second method is algebra: rewrite one formula into the other using equivalences that are already known to hold. Here are the ones you need; T and F stand for any tautology and any contradiction.
+
+| Law | Form with ∧ | Form with ∨ |
+|---|---|---|
+| Identity | $p \land \mathbf{T} \equiv p$ | $p \lor \mathbf{F} \equiv p$ |
+| Domination | $p \land \mathbf{F} \equiv \mathbf{F}$ | $p \lor \mathbf{T} \equiv \mathbf{T}$ |
+| Idempotent | $p \land p \equiv p$ | $p \lor p \equiv p$ |
+| Double negation | $\neg\neg p \equiv p$ | |
+| Commutative | $p \land q \equiv q \land p$ | $p \lor q \equiv q \lor p$ |
+| Associative | $(p \land q) \land r \equiv p \land (q \land r)$ | $(p \lor q) \lor r \equiv p \lor (q \lor r)$ |
+| Distributive | $p \land (q \lor r) \equiv (p \land q) \lor (p \land r)$ | $p \lor (q \land r) \equiv (p \lor q) \land (p \lor r)$ |
+| De Morgan | $\neg(p \land q) \equiv \neg p \lor \neg q$ | $\neg(p \lor q) \equiv \neg p \land \neg q$ |
+| Absorption | $p \land (p \lor q) \equiv p$ | $p \lor (p \land q) \equiv p$ |
+| Negation | $p \land \neg p \equiv \mathbf{F}$ | $p \lor \neg p \equiv \mathbf{T}$ |
+
+Notice the **duality**: every law in the ∧ column turns into the law in the ∨ column if you swap ∧ with ∨ and T with F. Learn one column and you get the other for free.
+
+The conditional and the biconditional have their own equivalences. The first one is the most used line in this whole course:
+
+| Equivalence | Name or meaning |
+|---|---|
+| $p \to q \equiv \neg p \lor q$ | conditional as a disjunction |
+| $p \to q \equiv \neg q \to \neg p$ | contrapositive |
+| $\neg(p \to q) \equiv p \land \neg q$ | how a promise is broken |
+| $p \lor q \equiv \neg p \to q$ | “if not this, then that” |
+| $(p \to q) \land (p \to r) \equiv p \to (q \land r)$ | one hypothesis, two conclusions |
+| $(p \to r) \land (q \to r) \equiv (p \lor q) \to r$ | proof by cases (week 7) |
+| $(p \land q) \to r \equiv p \to (q \to r)$ | exportation |
+| $p \leftrightarrow q \equiv (p \to q) \land (q \to p)$ | biconditional as two conditionals |
+| $\neg(p \leftrightarrow q) \equiv p \leftrightarrow \neg q \equiv p \oplus q$ | negating a biconditional |
+
+> [!warning] Two traps that look like laws but are not
+> - $(p \to q) \to r$ is **not** $p \to (q \to r)$. The conditional is not associative. Check $p = q = r = 0$.
+> - $(p \to r) \lor (q \to r)$ is **not** $(p \lor q) \to r$. Check it in the checker above and read the counterexample.
+
+## Proving equivalences step by step
+
+A proof by equivalences is a chain $A \equiv A_1 \equiv A_2 \equiv \dots \equiv B$ where **every step names a law**. Write one step per line, like code, so that a reader can check each line on its own.
+
+> [!example] Show $\neg(p \to q) \equiv p \land \neg q$
+> $$
+> \begin{aligned}
+> \neg(p \to q) &\equiv \neg(\neg p \lor q) && \text{conditional as disjunction}\\
+> &\equiv \neg\neg p \land \neg q && \text{De Morgan}\\
+> &\equiv p \land \neg q && \text{double negation}
+> \end{aligned}
+> $$
+> In words: the promise “if $p$ then $q$” is broken exactly when $p$ happens and $q$ does not.
+
+> [!example] Show $\neg\big(p \lor (\neg p \land q)\big) \equiv \neg p \land \neg q$
+> $$
+> \begin{aligned}
+> \neg\big(p \lor (\neg p \land q)\big) &\equiv \neg p \land \neg(\neg p \land q) && \text{De Morgan}\\
+> &\equiv \neg p \land (\neg\neg p \lor \neg q) && \text{De Morgan}\\
+> &\equiv \neg p \land (p \lor \neg q) && \text{double negation}\\
+> &\equiv (\neg p \land p) \lor (\neg p \land \neg q) && \text{distributive}\\
+> &\equiv \mathbf{F} \lor (\neg p \land \neg q) && \text{negation}\\
+> &\equiv \neg p \land \neg q && \text{identity (and commutative)}
+> \end{aligned}
+> $$
+
+> [!example] Show that $(p \land q) \to (p \lor q)$ is a tautology
+> $$
+> \begin{aligned}
+> (p \land q) \to (p \lor q) &\equiv \neg(p \land q) \lor (p \lor q) && \text{conditional as disjunction}\\
+> &\equiv (\neg p \lor \neg q) \lor (p \lor q) && \text{De Morgan}\\
+> &\equiv (\neg p \lor p) \lor (\neg q \lor q) && \text{associative, commutative}\\
+> &\equiv \mathbf{T} \lor \mathbf{T} && \text{negation}\\
+> &\equiv \mathbf{T} && \text{domination}
+> \end{aligned}
+> $$
+
+> [!tip] A strategy that almost always works
+> 1. Remove $\to$ and $\leftrightarrow$ with their equivalences.
+> 2. Push every $\neg$ inwards with De Morgan until it sits directly on a variable; cancel double negations.
+> 3. Now only ∧, ∨ and negated variables are left. Use distributive, absorption, negation, identity and domination to collapse it.
+
+## Simplification
+
+Simplifying means the same chain of laws, but you do not know the target in advance: you stop when nothing shorter is possible. These come from the lecture slides, each with the law used at every step.
+
+> [!example] $(p \lor q) \land (p \lor \neg q)$
+> $$
+> \begin{aligned}
+> (p \lor q) \land (p \lor \neg q) &\equiv p \lor (q \land \neg q) && \text{distributive (read right to left)}\\
+> &\equiv p \lor \mathbf{F} && \text{negation}\\
+> &\equiv p && \text{identity}
+> \end{aligned}
+> $$
+> Its twin, $(p \land q) \lor (p \land \neg q) \equiv p$, follows in the same way (the dual).
+
+> [!example] $p \lor (\neg p \land q)$
+> $$
+> \begin{aligned}
+> p \lor (\neg p \land q) &\equiv (p \lor \neg p) \land (p \lor q) && \text{distributive}\\
+> &\equiv \mathbf{T} \land (p \lor q) && \text{negation}\\
+> &\equiv p \lor q && \text{identity}
+> \end{aligned}
+> $$
+> It is **not** a tautology: $p = q = 0$ makes it false.
+
+> [!warning] The most common simplification mistake
+> Distributing ∨ over ∧ gives a **conjunction of two disjunctions**: $p \lor (q \land r) \equiv (p \lor q) \land (p \lor r)$. It is never $p \lor q \lor r$. Writing $p \lor (\neg p \land q) = p \lor \neg p \lor q = \mathbf{T}$ is exactly this mistake, and the truth table catches it immediately.
+
+> [!example] $\neg\big(p \lor (p \land q)\big)$
+> $$
+> \neg\big(p \lor (p \land q)\big) \equiv \neg p \qquad \text{absorption, } p \lor (p \land q) \equiv p
+> $$
+> Looking for absorption first saves four steps of De Morgan and distribution.
+
+> [!example] $(p \to q) \land \neg(p \land \neg q)$
+> $$
+> \begin{aligned}
+> (p \to q) \land \neg(p \land \neg q) &\equiv (\neg p \lor q) \land (\neg p \lor \neg\neg q) && \text{conditional; De Morgan}\\
+> &\equiv (\neg p \lor q) \land (\neg p \lor q) && \text{double negation}\\
+> &\equiv \neg p \lor q \;\equiv\; p \to q && \text{idempotent; conditional}
+> \end{aligned}
+> $$
+> The second half was just the first half in disguise.
+
+> [!example] $(p \lor q) \land (\neg p \land \neg q)$
+> $$
+> (p \lor q) \land (\neg p \land \neg q) \equiv (p \lor q) \land \neg(p \lor q) \equiv \mathbf{F} \qquad \text{De Morgan; negation}
+> $$
+> A **contradiction**: “at least one is true” and “both are false” can never hold together.
+
+> [!industry] The same thing, in a code review
+> ```python
+> # before
+> if not (user.is_admin or user.is_owner) and not user.is_admin:
+>     deny()
+> # after: De Morgan, then idempotent (¬a ∧ ¬a ≡ ¬a)
+> if not user.is_admin and not user.is_owner:
+>     deny()
+> ```
+> The rewrite is shorter, faster and easier to read. And because it is a chain of laws, it is **guaranteed** to behave identically.
+
+## Satisfiability and SAT
+
+> [!definition]
+> A formula is **satisfiable** if some assignment of truth values makes it true. A set of statements is **consistent** if they can all be true at the same time, which means their conjunction is satisfiable.
+
+Is $(p \lor \neg q) \land (q \lor \neg r) \land (r \lor \neg p)$ satisfiable? Read it as a cycle: $q \to p$, $r \to q$, $p \to r$. It is true when $p, q, r$ are all equal, so yes, for example with all three true. Now add “at least one is true” and “at least one is false”:
+
+$$
+(p \lor \neg q) \land (q \lor \neg r) \land (r \lor \neg p) \land (p \lor q \lor r) \land (\neg p \lor \neg q \lor \neg r)
+$$
+
+The first three force all variables to be equal; the last two forbid all-true and all-false. Nothing is left: the formula is **unsatisfiable**. Paste it into the playground below as `(p | ~q) & (q | ~r) & (r | ~p) & (p | q | r) & (~p | ~q | ~r)` and watch the verdict turn into “contradiction”.
+
+<LogicPlayground initial="(p | ~q) & (q | ~r) & (r | ~p)" id="lp-week3" />
+
+> [!why] Why the whole industry cares about SAT
+> Deciding satisfiability by truth table takes $2^n$ rows, and nobody knows an algorithm that is always fundamentally faster. SAT was the first problem proven **NP-complete** (Cook, 1971): if you could solve it fast in every case, you could solve thousands of other hard problems fast, and you would win a $1,000,000 Millennium Prize. Yet modern **SAT solvers** use clever search and learning to handle real formulas with millions of variables in seconds. A Sudoku, for example, becomes 729 variables (“cell $(i,j)$ holds $n$”) and roughly ten thousand clauses, and a solver finishes it in milliseconds.
+
+## Logic at work: specifications and puzzles
+
+### Are these requirements consistent?
+
+Specifications are written in English, so engineers translate them into logic to check that they do not contradict each other. Let $p$: the user is authenticated, $q$: access is granted, $r$: the account is locked.
+
+1. Access is granted only if the user is authenticated: $q \to p$.
+2. If the account is locked, access is not granted: $r \to \neg q$.
+3. Authenticated users are granted access: $p \to q$.
+
+These three are consistent: for example $p = q = 1$, $r = 0$ satisfies all of them. Now a customer asks for a fourth requirement:
+
+4. Some authenticated user has a locked account: $p \land r$.
+
+From 4 and 3 we get $q$; from 4 and 2 we get $\neg q$. The four requirements are **inconsistent**: no system can meet all of them, and finding that out on paper is far cheaper than finding it in production.
+
+> [!try] Check it in the playground
+> Type `(q -> p) & (r -> ~q) & (p -> q)`: a contingency, so it is satisfiable. Then add `& p & r` at the end: a contradiction.
+
+### Knights and Knaves
+
+On an island, **knights** always tell the truth and **knaves** always lie (Raymond Smullyan's puzzles). You meet A and B.
+
+- A says: “B is a knight.”
+- B says: “The two of us are of opposite types.”
+
+Let $p$: A is a knight, $q$: B is a knight. A's statement is true exactly when A is a knight, so $p \leftrightarrow q$. B's statement gives $q \leftrightarrow (p \oplus q)$. We need both:
+
+$$
+(p \leftrightarrow q) \land \big(q \leftrightarrow (p \oplus q)\big)
+$$
+
+The first part forces $p = q$; then $p \oplus q$ is false, so the second part forces $q$ to be false. **Both are knaves.** Type `(p <-> q) & (q <-> (p ^ q))` into the playground: exactly one row, $p = q = 0$, is true. The pattern “a speaker is a knight **iff** what they say is true” turns every such puzzle into a satisfiability problem. In Lab 2 you write a program that solves any of them.
+
+### Boolean search
+
+Library catalogs and advanced search engines take Boolean queries: `discrete AND (mathematics OR math) NOT music`. Everything you know about precedence and De Morgan applies; in particular, `NOT (a OR b)` returns the same results as `NOT a AND NOT b`.
+
+## Logic circuits
+
+A **logic gate** is a tiny electronic circuit that computes one connective on voltages: high voltage is 1, low is 0.
+
+| Gate | Output | Formula |
+|---|---|---|
+| NOT (inverter) | the opposite of the input | $\neg p$ |
+| AND | 1 when both inputs are 1 | $p \land q$ |
+| OR | 1 when at least one input is 1 | $p \lor q$ |
+| XOR | 1 when the inputs differ | $p \oplus q$ |
+| NAND | NOT of AND | $\neg(p \land q)$ |
+
+Every formula is a circuit: each connective becomes a gate, and each subformula becomes a wire. Simplifying the formula removes gates, which is why chip designers care so much about the laws above.
+
+### NAND can do everything
+
+The set $\{\neg, \land, \lor\}$ can express every truth table: write one ∧-term for each true row and join them with ∨ (the *disjunctive normal form*, a Lab 1 challenge). Surprisingly, a **single** gate is enough. With $p \uparrow q$ for NAND:
+
+$$
+\neg p \equiv p \uparrow p, \qquad p \land q \equiv (p \uparrow q) \uparrow (p \uparrow q), \qquad p \lor q \equiv (p \uparrow p) \uparrow (q \uparrow q)
+$$
+
+Check the last one with De Morgan. Because NAND is **functionally complete**, real chips are built from millions of copies of one or two gate designs.
+
+### Adding binary numbers
+
+Adding two bits produces a **sum** bit and a **carry** bit: $1 + 1 = 10_2$, so sum 0, carry 1.
+
+<table class="tt">
+<thead><tr><th>A</th><th>B</th><th>carry = A ∧ B</th><th>sum = A ⊕ B</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+</tbody>
+</table>
+
+That table is the **half adder**: one XOR and one AND. To add longer numbers, each column must also add the carry coming from the column on its right. The **full adder** does this with three inputs $A, B, C_{in}$:
+
+$$
+S = A \oplus B \oplus C_{in}, \qquad C_{out} = (A \land B) \lor \big(C_{in} \land (A \oplus B)\big)
+$$
+
+Click the inputs and follow the signal through the gates:
+
+<AdderLab id="adder-week3" />
+
+Four full adders in a row, each one's carry-out wired to the next one's carry-in, make a **ripple-carry adder**. A 64-bit processor does the same with 64 of them (plus tricks to make the carry faster). Everything your computer computes, from video to AI, is built on top of this one page of logic.
+
+## Summary
+
+- $p \leftrightarrow q \equiv (p \to q) \land (q \to p)$: same truth value. $p \oplus q \equiv \neg(p \leftrightarrow q)$: different truth value.
+- XOR facts: $p \oplus 0 = p$, $p \oplus 1 = \neg p$, $p \oplus p = 0$, and XOR-ing twice with a key gives the original back.
+- $A \equiv B$ means the same truth value in every row, that is, $A \leftrightarrow B$ is a tautology. One differing row (a counterexample) proves non-equivalence.
+- Prove and simplify with a chain of named laws. Strategy: remove → and ↔, push ¬ inwards, then collapse.
+- Satisfiable means at least one true row; a set of requirements is consistent when its conjunction is satisfiable. SAT is hard in theory and solved every day in practice.
+- Every formula is a circuit. Half adder: $S = A \oplus B$, $C = A \land B$. Full adders in a chain add binary numbers.
+
+## Practice
+
+> [!try] Exercises
+> 1. Show with a chain of laws that $p \to (q \to r) \equiv q \to (p \to r)$.
+> 2. Simplify $\neg(\neg p \land q) \land (p \lor q)$.
+> 3. Is $(p \to q) \land (q \to r) \to (p \to r)$ a tautology? Decide with the playground, then explain the result in one sentence.
+> 4. A says: “At least one of us is a knave.” What are A and B?
+> 5. Write $p \leftrightarrow q$ using only NAND.
+
+<details>
+<summary>Answers</summary>
+
+1. $p \to (q \to r) \equiv \neg p \lor (\neg q \lor r) \equiv \neg q \lor (\neg p \lor r) \equiv q \to (p \to r)$ (conditional twice, then associative and commutative, then conditional twice back).
+2. $\neg(\neg p \land q) \land (p \lor q) \equiv (p \lor \neg q) \land (p \lor q) \equiv p \lor (\neg q \land q) \equiv p \lor \mathbf{F} \equiv p$ (De Morgan with double negation, distributive, negation, identity).
+3. Yes, it is a tautology. If $p$ leads to $q$ and $q$ leads to $r$, then $p$ leads to $r$: this is *hypothetical syllogism*, one of the rules of inference in [week 6](/weeks/week-06).
+4. Let $p$: A is a knight, $q$: B is a knight. Then $p \leftrightarrow (\neg p \lor \neg q)$. If $p$ were false, the statement $\neg p \lor \neg q$ would be true, so a knave would have said something true: impossible. So $p$ is true, the statement must be true, and $\neg q$ holds. **A is a knight, B is a knave.**
+5. Let $n = p \uparrow q$. Then $p \oplus q \equiv (p \uparrow n) \uparrow (q \uparrow n)$, and $p \leftrightarrow q \equiv \neg(p \oplus q)$, which is that result NAND-ed with itself. Five NAND gates in total.
+</details>
+
+## Before the lab
+
+[Lab 2](/labs/lab-02) turns this page into Python. You will check equivalences by brute force, build half and full adders from gate functions and add real binary numbers with them, and write a solver for Knights and Knaves puzzles. It builds directly on the truth-table engine you wrote in Lab 1.

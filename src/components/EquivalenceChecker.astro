@@ -1,0 +1,83 @@
+---
+/**
+ * Two formulas in, one verdict out: equivalent (≡), or a counterexample row that tells them apart.
+ * <EquivalenceChecker left="~(p & q)" right="~p | ~q" />
+ */
+interface Props { left?: string; right?: string; id?: string; }
+const { left = '~(p & q)', right = '~p | ~q', id = 'eq' } = Astro.props;
+const presets = [
+  ['De Morgan', '~(p & q)', '~p | ~q'],
+  ['implication', 'p -> q', '~p | q'],
+  ['contrapositive', 'p -> q', '~q -> ~p'],
+  ['converse?', 'p -> q', 'q -> p'],
+  ['distributive', 'p | (q & r)', '(p | q) & (p | r)'],
+  ['absorption', 'p | (p & q)', 'p'],
+  ['xor', 'p ^ q', '(p | q) & ~(p & q)'],
+  ['exportation', '(p & q) -> r', 'p -> (q -> r)'],
+];
+---
+<div class="eq-checker card my-8 overflow-hidden shadow-soft" data-eq id={id}>
+  <div class="flex items-center justify-between border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">equivalence checker · is A ≡ B ?</span>
+    <span class="font-mono text-[11px] text-ink-3">~ &amp; | ^ -&gt; &lt;-&gt;</span>
+  </div>
+  <div class="grid gap-3 p-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end sm:p-5">
+    <label class="block">
+      <span class="eyebrow">Formula A</span>
+      <input data-eq-a type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value={left}
+        class="mt-1.5 w-full rounded-lg border border-line-2 bg-paper px-3 py-2.5 font-mono text-[15px] text-ink outline-none focus:border-brand" />
+    </label>
+    <span class="hidden pb-2.5 text-center font-mono text-xl text-ink-3 sm:block" aria-hidden="true">≡?</span>
+    <label class="block">
+      <span class="eyebrow">Formula B</span>
+      <input data-eq-b type="text" spellcheck="false" autocomplete="off" autocapitalize="off" value={right}
+        class="mt-1.5 w-full rounded-lg border border-line-2 bg-paper px-3 py-2.5 font-mono text-[15px] text-ink outline-none focus:border-brand" />
+    </label>
+  </div>
+  <div class="flex flex-wrap gap-1.5 px-4 pb-3 sm:px-5">
+    {presets.map(([label, a, b]) => (
+      <button type="button" data-eq-preset-a={a} data-eq-preset-b={b} class="rounded-md border border-line px-2 py-1 font-mono text-[11px] text-ink-2 hover:border-brand hover:text-brand">{label}</button>
+    ))}
+  </div>
+  <div class="border-t border-line px-4 py-4 sm:px-5" aria-live="polite">
+    <p data-eq-verdict class="font-mono text-sm font-semibold"></p>
+    <p data-eq-detail class="mt-1 text-sm text-ink-2"></p>
+  </div>
+</div>
+
+<script>
+  import { compile, vars, ev, show, rowsOf } from '@/lib/logic';
+
+  document.querySelectorAll<HTMLElement>('[data-eq]').forEach((root) => {
+    const a = root.querySelector<HTMLInputElement>('[data-eq-a]')!;
+    const b = root.querySelector<HTMLInputElement>('[data-eq-b]')!;
+    const verdict = root.querySelector<HTMLElement>('[data-eq-verdict]')!;
+    const detail = root.querySelector<HTMLElement>('[data-eq-detail]')!;
+    const fmt = (env: Record<string, boolean>) => Object.entries(env).map(([k, v]) => `${k} = ${v ? 1 : 0}`).join(', ');
+
+    const run = () => {
+      let A, B;
+      try { A = compile(a.value); } catch (e) { verdict.className = 'font-mono text-sm font-semibold text-accent'; verdict.textContent = `Formula A: ${(e as Error).message}`; detail.textContent = ''; return; }
+      try { B = compile(b.value); } catch (e) { verdict.className = 'font-mono text-sm font-semibold text-accent'; verdict.textContent = `Formula B: ${(e as Error).message}`; detail.textContent = ''; return; }
+      const vs = [...new Set([...vars(A), ...vars(B)])].sort();
+      if (vs.length > 8) { verdict.textContent = 'Up to 8 variables, please.'; return; }
+      const rows = rowsOf(vs);
+      const bad = rows.filter((env) => ev(A!, env) !== ev(B!, env));
+      if (!bad.length) {
+        verdict.className = 'font-mono text-sm font-semibold text-true';
+        verdict.textContent = `✓ equivalent:  ${show(A)}  ≡  ${show(B)}`;
+        detail.textContent = `They agree on all ${rows.length} rows, so A ↔ B is a tautology.`;
+      } else {
+        const env = bad[0];
+        verdict.className = 'font-mono text-sm font-semibold text-false';
+        verdict.textContent = `✗ not equivalent: they differ on ${bad.length} of ${rows.length} rows`;
+        detail.textContent = `Counterexample: ${fmt(env)} gives A = ${ev(A, env) ? 1 : 0} but B = ${ev(B, env) ? 1 : 0}.`;
+      }
+    };
+    a.addEventListener('input', run);
+    b.addEventListener('input', run);
+    root.querySelectorAll<HTMLButtonElement>('[data-eq-preset-a]').forEach((btn) =>
+      btn.addEventListener('click', () => { a.value = btn.dataset.eqPresetA!; b.value = btn.dataset.eqPresetB!; run(); }));
+    run();
+  });
+</script>
