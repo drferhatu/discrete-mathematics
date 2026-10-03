@@ -132,8 +132,110 @@ md("""## Your turn
 3. Change the timing loop in section 4 to go up to $n = 24$. Estimate from the plot how long $n = 30$ would take, then check your guess."""),
 ]
 
+
+# ---------------------------------------------------------------------------
+# LAB 2 · XOR, parity and NAND, explored
+# ---------------------------------------------------------------------------
+LAB02 = [
+md("""# Lab 2 · Explore: XOR secrets, self-healing disks and a world made of NAND
+
+**Discrete Mathematics (YMT211)** · Fall 2026
+
+The playground half of Lab 2. Nothing here is graded: run each cell (`Shift+Enter`), read, change, run again.
+The graded half is `circuits.py` and `puzzles.py`, checked with `python check.py`."""),
+md("""## 1 · XOR undoes itself
+
+The week 3 notes say $(p \\oplus k) \\oplus k = p$. Python's `^` is XOR on every bit of an integer at once."""),
+code("""m, k = 0b1011_0010, 0b0110_1100
+c = m ^ k
+print(f"message    {m:08b}")
+print(f"key        {k:08b}")
+print(f"cipher     {c:08b}")
+print(f"cipher ^ k {c ^ k:08b}   ← the message again")"""),
+md("""## 2 · A tiny one-time pad
+
+Encrypt a sentence by XOR-ing every byte with a random key byte. Without the key the ciphertext is just noise."""),
+code("""import secrets
+
+message = "Discrete math is fun".encode()
+key = secrets.token_bytes(len(message))          # random, used once
+cipher = bytes(m ^ k for m, k in zip(message, key))
+back = bytes(c ^ k for c, k in zip(cipher, key))
+
+print("cipher (hex):", cipher.hex())
+print("decrypted   :", back.decode())"""),
+md("""> **Think:** what happens if you use the *same* key twice for two messages? XOR the two ciphertexts and the key disappears:
+> $(m_1 \\oplus k) \\oplus (m_2 \\oplus k) = m_1 \\oplus m_2$. That is exactly how real systems that reused keys were broken."""),
+code("""m1, m2 = b"ATTACK AT DAWN", b"RETREAT AT TEN"
+k = secrets.token_bytes(len(m1))
+c1 = bytes(a ^ b for a, b in zip(m1, k))
+c2 = bytes(a ^ b for a, b in zip(m2, k))
+leak = bytes(a ^ b for a, b in zip(c1, c2))
+print("c1 ^ c2 == m1 ^ m2 :", leak == bytes(a ^ b for a, b in zip(m1, m2)))"""),
+md("""## 3 · RAID: a disk dies, the data survives
+
+Three data disks and one parity disk that stores the XOR of the other three. Lose any one disk and XOR the rest."""),
+code("""import random
+
+disks = [bytes(random.randrange(256) for _ in range(8)) for _ in range(3)]
+parity = bytes(a ^ b ^ c for a, b, c in zip(*disks))
+
+lost = 1
+survivors = [d for i, d in enumerate(disks) if i != lost] + [parity]
+rebuilt = bytes(a ^ b ^ c for a, b, c in zip(*survivors))
+print("disk", lost, "rebuilt correctly:", rebuilt == disks[lost])"""),
+md("""## 4 · Counting NAND gates
+
+Everything can be built from NAND. But how many gates does it cost? Let's count by building with a function that records every call."""),
+code("""calls = 0
+def NAND(a, b):
+    global calls
+    calls += 1
+    return 1 - (a & b)
+
+def NOT(a): return NAND(a, a)
+def AND(a, b): n = NAND(a, b); return NAND(n, n)
+def OR(a, b): return NAND(NAND(a, a), NAND(b, b))
+def XOR(a, b): n = NAND(a, b); return NAND(NAND(a, n), NAND(b, n))
+
+def full_adder(a, b, c):
+    x = XOR(a, b)
+    return XOR(x, c), OR(AND(a, b), AND(x, c))
+
+for name, f, n in [("NOT", NOT, 1), ("AND", AND, 2), ("OR", OR, 2), ("XOR", XOR, 2), ("full adder", full_adder, 3)]:
+    calls = 0
+    f(*[1] * n)
+    print(f"{name:<11} {calls:>2} NAND gates")"""),
+md("""> This straightforward full adder costs 15 NAND gates; a careful design needs only 9. A 64-bit adder needs 64 of them.
+> Shaving gates off one adder saves billions of transistors across a factory's production run."""),
+md("""## 5 · How fast does brute force grow?
+
+`solve` in `puzzles.py` tries every world: $2^n$ of them for $n$ islanders. Here is the same idea timed for growing $n$."""),
+code("""import time
+from itertools import product
+import matplotlib.pyplot as plt
+
+ns, secs = [], []
+for n in range(4, 21, 2):
+    t0 = time.perf_counter()
+    count = sum(1 for w in product([True, False], repeat=n) if w[0] == (w.count(True) == 1))
+    ns.append(n); secs.append(time.perf_counter() - t0)
+
+fig, ax = plt.subplots(figsize=(7, 3.5))
+ax.semilogy(ns, secs, "o-", color="#e8560f")
+ax.set_xlabel("islanders n"); ax.set_ylabel("seconds (log scale)")
+ax.set_title("Brute force: a straight line on a log scale means exponential growth")
+ax.grid(alpha=.3); plt.tight_layout(); plt.show()"""),
+md("""## Your turn
+
+1. In section 2, encrypt your own name. Then change one bit of the key and decrypt: what happens to the message?
+2. In section 3, set `lost = 3` (the parity disk). Does the rebuild still work? Why?
+3. Find a full adder with fewer NAND gates than section 4 (hint: reuse the `NAND(a, b)` inside XOR)."""),
+]
+
 NOTEBOOKS = {
     "lab01": (ROOT / "labs" / "templates" / "lab01" / "lab01.ipynb", LAB01),
+    "lab02": (ROOT / "labs" / "templates" / "lab02" / "lab02.ipynb", LAB02),
 }
 
 SKIP_TAG = "skip-execution"

@@ -16,9 +16,9 @@ const { lab, prev, next } = Astro.props;
 const d = lab.data;
 const { Content, headings } = await render(lab);
 const templateMode = d.mode === 'template';
-const templateRepo = `${course.classroom.org}/${course.classroom.slug}-${d.assignment}-template`;
+const templateRepo = `${course.classroom.org}/${course.classroom.prefix}-${d.assignment}-template`;
 const createUrl = `https://github.com/${templateRepo}/generate`;
-const repo = templateMode ? `YOUR-USERNAME/${course.classroom.slug}-${d.assignment}` : `${course.classroom.org}/${course.classroom.slug}-${d.assignment}-USERNAME`;
+const repo = templateMode ? `YOUR-USERNAME/${course.classroom.prefix}-${d.assignment}` : `${course.classroom.org}/${course.classroom.slug}-${d.assignment}-USERNAME`;
 ---
 <BaseLayout title={`Lab ${d.lab}: ${d.title}`} description={d.description} ogType="article">
   <header class="relative overflow-hidden border-b border-line">

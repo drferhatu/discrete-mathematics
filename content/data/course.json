@@ -55,9 +55,11 @@
     }
   ],
   "classroom": {
-    "_note": "Classroom 50 settings. org = GitHub organization (Team plan), slug = classroom short name. Change here and every lab page updates.",
+    "_note": "Classroom 50: org = GitHub organization (Team plan); slug = classroom short name on classroom50.org (student repos are <slug>-<assignment>-<username>); prefix = short prefix for template repos and plan-B student repos (dm-2026-labNN).",
     "org": "FiratUniversity-IJDP-SoftEng",
-    "slug": "dm-2026",
+    "slug": "discrete-mathematics",
+    "name": "Discrete Mathematics",
+    "prefix": "dm-2026",
     "web": "https://classroom50.org",
     "editor": "https://github.com/codespaces"
   },

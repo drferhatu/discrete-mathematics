@@ -1,0 +1,221 @@
+---
+lab: 2
+week: 3
+title: "Gates, Adders and Knights & Knaves"
+description: "Build logic gates, check equivalences by brute force, add binary numbers with a ripple-carry adder made of gates, prove that NAND is enough, and write a solver for Knights and Knaves puzzles."
+assignment: lab02
+mode: classroom50
+status: open
+acceptUrl: ""
+duration: "75 min + finish at home"
+points: 10
+files: ["circuits.py", "puzzles.py"]
+topics: ["logic gates", "equivalence", "full adder", "NAND", "Knights & Knaves", "consistency"]
+notebook: { file: "labs/templates/lab02/lab02.ipynb", title: "Lab 2 · Explore: XOR secrets, self-healing disks and NAND" }
+---
+
+## Goal
+
+This lab turns the [week 3 notes](/weeks/week-03) into working code. By the end you have:
+
+- the five logic gates and a **brute-force equivalence checker** that finds counterexamples,
+- a **half adder**, a **full adder** and a **ripple-carry adder** that adds binary numbers using nothing but gates,
+- NOT, AND, OR and XOR rebuilt from **NAND alone**,
+- a **Knights and Knaves solver** that cracks any puzzle you can write down, and a consistency checker for requirements.
+
+> [!note] You can start without the instructor
+> Everything you need is on this page. Work top to bottom. Ask your neighbor first, then the instructor. If one step blocks you for more than 10 minutes, write down the exact error message and go on to the next part.
+
+> [!warning] New this week: Classroom 50
+> From Lab 2 on, labs come from **Classroom 50**, the assignment platform made by Harvard's CS50 team. Steps 1 and 2 are needed **once**; from Lab 3 on you start at step 2.
+
+## Steps
+
+<Step n={1} title="Join the course organization (once)" time="2 min" id="join">
+
+You received an email from GitHub at your **university address** (`your-student-number@firat.edu.tr`), titled *“… invited you to join the FiratUniversity-IJDP-SoftEng organization”*.
+
+1. Open the email and click **Join FiratUniversity-IJDP-SoftEng**.
+2. Sign in with **your** GitHub account (the one you used for Lab 1) and click **Join**.
+
+That is all. You are now on the course roster.
+
+> [!tip] No email?
+> Check spam and the “Other/Promotions” tabs. Your university mail is at [outlook.office.com](https://outlook.office.com). If it is not there, tell the instructor right away; the invitation can be re-sent in a minute.
+
+</Step>
+
+<Step n={2} title="Accept Lab 2" time="1 min" id="accept">
+
+1. Click the orange **Accept lab lab02** button at the top of this page.
+2. If asked, click **Sign in with GitHub** and authorize Classroom 50.
+3. Click **Accept assignment** and wait for the checklist to finish (about 20 seconds).
+4. Click **Open repository**.
+
+You now have a private repository called `discrete-mathematics-lab02-yourusername` inside the course organization, with the starter code, the tests and the notebook. Only you and the instructor can see it.
+
+</Step>
+
+<Step n={3} title="Open it in Codespaces" time="2 min" id="codespace">
+
+On your repository page: green **Code** button → **Codespaces** tab → **Create codespace on main**. Exactly like Lab 1; the first start takes a minute or two.
+
+</Step>
+
+<Step n={4} title="Look around and run the checks" time="3 min" id="look">
+
+| File | What it is |
+|---|---|
+| `circuits.py` | **your work, part 1**: gates, equivalence, adders, NAND |
+| `puzzles.py` | **your work, part 2**: Knights & Knaves, requirements |
+| `lab02.ipynb` | playground notebook, not graded |
+| `check.py`, `tests/` | the checks (do not edit the tests) |
+
+<Terminal cmd="python check.py" out={`:| the gate matches its truth table and returns 0/1  [AND]
+    not implemented yet (still raises NotImplementedError)
+...
+0/34 checks passed`} />
+
+In `circuits.py` a bit is the **integer** `1` or `0`, like a wire. In `puzzles.py` truth values are `True` and `False`. Keep that in mind; it is the most common source of surprises.
+
+</Step>
+
+<Step n={5} title="Part A: logic gates" time="5 min" id="part-a">
+
+Write `NOT`, `AND`, `OR`, `XOR` and `NAND` in `circuits.py`. Each takes bits and must **return `0` or `1`**, not `True` or `False`.
+
+Two ways to think about it: with conditions (`return 1 if a and b else 0`) or with arithmetic on bits (`1 - a` is NOT). For `NAND`, reuse your own gates: NAND is NOT of AND.
+
+</Step>
+
+<Step n={6} title="Part B: equivalence by brute force" time="10 min" id="part-b">
+
+`counterexample(f, g, n)` walks through every row of `n` bits and returns the **first** row where `f` and `g` disagree, or `None`. It is the [equivalence checker](/weeks/week-03#logical-equivalence) from the notes, in eight lines.
+
+```python
+from itertools import product
+for row in product([1, 0], repeat=2):
+    print(row)          # (1, 1), (1, 0), (0, 1), (0, 0)
+```
+
+Then `equivalent(f, g, n)` is one line: two formulas are equivalent exactly when there is **no** counterexample.
+
+<Terminal cmd="python circuits.py" out={`...
+p→q ≡ ¬q→¬p ? True
+p→q ≡ q→p   ? counterexample: (1, 0)`} />
+
+</Step>
+
+<Step n={7} title="Part C: adders from gates" time="20 min" id="part-c">
+
+Use **only your gate functions**: the checks reject `+`, `-`, `//` and `%` in the adders.
+
+1. `half_adder(a, b)` returns `(sum, carry)`: sum is XOR, carry is AND. One line.
+2. `full_adder(a, b, cin)` returns `(sum, carry_out)`. Either use the two formulas in the docstring, or chain **two half adders and one OR** (the circuit on the [week 3 page](/weeks/week-03#adding-binary-numbers)).
+3. `add_binary(x, y)` adds two bit strings like a CPU does:
+   - pad the shorter string with `"0"` on the left (`str.zfill` helps),
+   - walk the columns **from right to left** with `reversed(...)`, starting with carry `0`,
+   - each column: `s, carry = full_adder(int(a), int(b), carry)`,
+   - if a carry is left at the end, it becomes an extra leading `"1"`.
+
+<Terminal cmd="python circuits.py" out={`half_adder(1, 1) = (0, 1)
+11 + 6 = 10001 (binary)`} />
+
+The checks add **all 256 pairs** of 4-bit numbers with your adder. If one pair fails, the message tells you which.
+
+</Step>
+
+<Step n={8} title="Part D: NAND is enough" time="10 min" id="part-d">
+
+Rebuild NOT, AND, OR and XOR using **only calls to `NAND`**: no other gates, no `and`/`or`/`not`, no operators, no `if`. The checks read your code to make sure. The identities are in the notes:
+
+$$
+\neg p \equiv p \uparrow p, \qquad p \land q \equiv (p \uparrow q) \uparrow (p \uparrow q), \qquad p \lor q \equiv (p \uparrow p) \uparrow (q \uparrow q)
+$$
+
+For XOR, start with `n = NAND(a, b)`; four NAND calls are enough.
+
+</Step>
+
+<Step n={9} title="Part E: a Knights and Knaves solver" time="15 min" id="part-e">
+
+Open `puzzles.py`. A **world** says who is a knight: `{"A": True, "B": False}`. A statement is a function of the world:
+
+```python
+"A": lambda w: w["B"]                  # A says: "B is a knight"
+"B": lambda w: w["A"] != w["B"]        # B says: "We are of opposite types"
+```
+
+`solve(people, statements)` tries **every** world and keeps the consistent ones. The one rule from the lecture: a speaker is a knight **if and only if** their statement is true, so for every speaker `s`, `w[s] == statements[s](w)` must hold.
+
+1. Loop over `product([True, False], repeat=len(people))`.
+2. Turn each tuple into a world with `dict(zip(people, values))`.
+3. Keep the world if the rule holds for **all** speakers (`all(...)` is ∀ again).
+
+</Step>
+
+<Step n={10} title="Part F: write the puzzles" time="10 min" id="part-f">
+
+Translate each puzzle into a `statements` dict. Then run `python puzzles.py` and check the answers make sense.
+
+- **Puzzle 1** is the one from the notes: both should be knaves.
+- **Puzzle 2:** A says “at least one of us is a knave”. B says nothing, so B has no entry.
+- **Puzzle 3:** A says “all three of us are knaves”, B says “exactly one of us is a knight”. Hint: `[w["A"], w["B"], w["C"]].count(True) == 1`.
+
+</Step>
+
+<Step n={11} title="Part G: are the requirements consistent?" time="10 min" id="part-g">
+
+`satisfying_row(formulas, n)` returns the first row that makes **every** formula true, or `None`. `login_requirements()` returns the four requirements from the [week 3 notes](/weeks/week-03#are-these-requirements-consistent) as functions of `(p, q, r)`.
+
+Translate carefully: requirement 1 says access is granted **only if** the user is authenticated. Which way does the arrow point? (Week 2: “$p$ only if $q$” is $p \to q$.)
+
+<Terminal cmd="python puzzles.py" out={`...
+requirements 1–3 consistent: (True, True, False)
+requirements 1–4 consistent: None`} />
+
+</Step>
+
+<Step n={12} title="Submit" time="1 min" id="submit">
+
+Submitting is pushing. **Every push is graded automatically.**
+
+<Terminal lines={['git add -A', 'git commit -m "Lab 2"', 'git push']} />
+
+About two minutes later:
+
+1. On your repository page, look at **Releases** on the right. The newest `submit/…` release shows your score and a table of passed and failed checks.
+2. Or open [classroom50.org](https://classroom50.org) → Discrete Mathematics → Lab 2 → **My submission**.
+
+Push as often as you like before **Friday 23:59**; the last push before the deadline counts.
+
+</Step>
+
+## Explore: the notebook
+
+`lab02.ipynb` is not graded. Encrypt a message with XOR and see why reusing a key is fatal, rebuild a dead RAID disk from parity, count how many NAND gates a full adder costs, and watch brute force grow exponentially.
+
+<NotebookEmbed file="labs/templates/lab02/lab02.ipynb" title="Lab 2 · Explore notebook" />
+
+## Challenges (optional, not graded)
+
+1. **Subtraction.** Two's complement turns $x - y$ into $x + \lnot y + 1$. Write `sub_binary(x, y)` with your gates and `add_binary`.
+2. **Comparator.** Write `greater(x, y)` for 4-bit strings using only gates.
+3. **A harder island.** C says “A and B are of the same type”. A says “C is a knave”. What are they? Let your solver answer.
+
+## Troubleshooting
+
+> [!note] Classroom 50 says “Not a member yet”
+> You have not accepted the organization invitation (step 1), or you signed in to Classroom 50 with a different GitHub account. Accept the invitation, then click **Check again**.
+
+> [!note] “This assignment isn't available to you”
+> You joined the organization but are not on the roster yet. Tell the instructor your GitHub username.
+
+> [!note] My score is lower than `python check.py` shows
+> Make sure you pushed: open your repository on github.com and check that your latest commit is there. Then open the **Actions** tab; the grading run must be green.
+
+> [!note] `git push` is rejected
+> Classroom 50 sometimes adds a small commit to your repository. Run `git pull`, then `git push` again.
+
+> [!note] A check about “operators” or “arithmetic” fails, but the outputs are right
+> Parts C and D are about **how** you build the circuit, not only the output. Use the gate functions (Part C) or only `NAND` (Part D).

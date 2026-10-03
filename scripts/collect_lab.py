@@ -145,7 +145,7 @@ def main():
     ap.add_argument("--timeout", type=int, default=120)
     a = ap.parse_args()
 
-    repo_name = f"{COURSE['classroom']['slug']}-{a.lab}".lower()
+    repo_name = f"{COURSE['classroom']['prefix']}-{a.lab}".lower()
     a.due = a.due or lab_due(a.lab)
     print(f"· deadline {a.due} (Türkiye time)")
     due = datetime.strptime(a.due, "%Y-%m-%d %H:%M").replace(tzinfo=TZ).astimezone(timezone.utc)

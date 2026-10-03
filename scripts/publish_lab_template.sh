@@ -12,8 +12,9 @@ VIS="--private"; [ "${2:-}" = "--public" ] && VIS="--public"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ORG=$(python3 -c "import json;print(json.load(open('$ROOT/content/data/course.json'))['classroom']['org'])")
 CLS=$(python3 -c "import json;print(json.load(open('$ROOT/content/data/course.json'))['classroom']['slug'])")
+PFX=$(python3 -c "import json;print(json.load(open('$ROOT/content/data/course.json'))['classroom']['prefix'])")
 SRC="$ROOT/labs/templates/$LAB"
-REPO="$ORG/$CLS-$LAB-template"
+REPO="$ORG/$PFX-$LAB-template"
 [ -d "$SRC" ] || { echo "no template folder: $SRC"; exit 1; }
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
