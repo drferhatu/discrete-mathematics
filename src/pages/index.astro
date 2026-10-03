@@ -12,7 +12,7 @@ const labs = await getLabsSorted();
 const thisWeek = weeks.find((w) => w.data.week === currentWeek()) ?? weeks[0];
 const thisLab = labs.find((l) => l.id === thisWeek.data.lab);
 const announcements = (await getCollection('announcements'))
-  .sort((a, b) => Number(b.data.pinned) - Number(a.data.pinned) || b.data.date.getTime() - a.data.date.getTime())
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime() || b.id.localeCompare(a.id))
   .slice(0, 3);
 
 // where discrete math shows up in real software: one line per module
