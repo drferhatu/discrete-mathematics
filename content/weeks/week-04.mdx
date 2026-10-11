@@ -1,0 +1,515 @@
+---
+week: 4
+title: "Predicates and Quantifiers"
+description: "Statements with variables: predicates, domains, “for all” and “there exists”, translating English into logic and back, and negating quantified statements correctly."
+module: m2
+status: ready
+reading: "Rosen 1.4"
+lab: lab-03
+objectives:
+  - "Explain why propositional logic cannot express “every” and “some”, and what a predicate adds."
+  - "Evaluate a predicate P(x) for a given value, and say why P(x) alone is not a proposition."
+  - "Decide the truth value of ∀x P(x) and ∃x P(x) over a given domain, using a counterexample or a witness."
+  - "Explain how the domain changes the truth value of the same statement."
+  - "Translate English sentences into predicate logic and back, using the rule “∀ goes with →, ∃ goes with ∧”."
+  - "Negate quantified statements correctly with De Morgan's laws for quantifiers."
+  - "Write ∀ and ∃ over finite data in Python with all() and any(), and recognize them in SQL."
+wow:
+  title: "SQL is predicate logic with a nicer keyboard."
+  text: "SELECT … WHERE EXISTS (…) is ∃, and SQL has no FOR ALL at all: databases write “every student has taken Java” as NOT EXISTS a student WHERE NOT java, that is, ¬∃x(S(x) ∧ ¬J(x)). That is De Morgan's law for quantifiers, the topic of this week, running millions of times per second in every database you will ever use."
+industry:
+  - {"t": "Databases", "d": "WHERE clauses are predicates; EXISTS and NOT EXISTS are quantifiers. Query optimizers rewrite queries with exactly the equivalences on this page."}
+  - {"t": "Access control", "d": "Cloud permission systems answer questions like “does there exist a policy that allows this request?” and “for every request from this role, is access denied?”."}
+  - {"t": "Testing", "d": "Unit tests check a few examples (∃). Property-based testing (Hypothesis in Python) tries thousands of random inputs to hunt for a counterexample to a ∀ statement."}
+  - {"t": "Specifications", "d": "Requirements like “every message larger than 1 MB is compressed” are ∀ statements. Writing them in logic exposes ambiguity before any code is written."}
+slides:
+  - {"title": "Slides: predicate logic", "file": "dm-2026-w04-predicate-logic.pdf"}
+resources:
+  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapter 3.6, predicate formulas"}
+  - {"title": "Stanford CS103 Mathematical Foundations of Computing", "url": "https://web.stanford.edu/class/cs103/", "note": "first-order logic lectures, with excellent translation practice"}
+  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Section 0.2, quantifiers and predicates"}
+  - {"title": "forall x: Calgary, an open logic textbook", "url": "https://forallx.openlogicproject.org/", "note": "Part V, first-order logic and symbolization"}
+  - {"title": "Hypothesis: property-based testing for Python", "url": "https://hypothesis.readthedocs.io/", "note": "∀ statements as tests"}
+tags: ["predicate", "propositional function", "quantifier", "universal", "existential", "forall", "exists", "domain", "counterexample", "witness", "negation", "De Morgan", "SQL", "all", "any"]
+---
+
+import QuantifierLab from '@/components/QuantifierLab.astro';
+
+## Why we need more than propositions
+
+Here is a famous argument, more than two thousand years old:
+
+> All humans are mortal. Socrates is a human. Therefore, Socrates is mortal.
+
+Everybody agrees it is correct. Now try to write it in the propositional logic of weeks 2 and 3. The best we can do is three unrelated letters: $p$ = “all humans are mortal”, $q$ = “Socrates is a human”, $r$ = “Socrates is mortal”. The argument becomes $p, q \;\therefore\; r$, and nothing in $p$ and $q$ forces $r$. Propositional logic **cannot see inside** a sentence. It does not know that “all humans” talks about Socrates.
+
+The same problem shows up in software every day:
+
+- “**Every** request is authenticated.”
+- “**Some** server in the cluster is overloaded.”
+- “**No** user has two active sessions.”
+
+With 10,000 users we would need 10,000 separate propositions, one per user. What we really want is to write a statement **once**, with a variable, and say “for all of them” or “for some of them”. That is exactly what **predicate logic** adds, with two new ingredients: **predicates** and **quantifiers**.
+
+## Predicates
+
+> [!definition] Predicate (propositional function)
+> A **predicate** $P(x)$ is a statement that contains a variable $x$. It becomes a proposition, true or false, as soon as a specific value is put in for $x$.
+
+Take $P(x)$: “$x > 3$”.
+
+| Statement | Proposition? | Truth value |
+|---|---|---|
+| $P(x)$: $x > 3$ | **no**, $x$ is unknown | none yet |
+| $P(4)$: $4 > 3$ | yes | true |
+| $P(2)$: $2 > 3$ | yes | false |
+
+In plain words: **a predicate is a yes/no question with a blank**. “Is ___ greater than 3?” has no answer until you fill in the blank.
+
+If you program, you already know predicates. A predicate is simply a **function that returns a boolean**:
+
+```python
+def P(x):                  # P(x): "x > 3"
+    return x > 3
+
+def is_valid_ipv4(s):      # V(s): "s is a valid IPv4 address"
+    parts = s.split(".")
+    return len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)
+
+P(4)                       # True
+is_valid_ipv4("256.1.1.1") # False
+```
+
+### Predicates with several variables
+
+A predicate can have more than one blank. The number of variables is its **arity**.
+
+- $Q(x, y)$: “$x = y + 3$”. Then $Q(5, 2)$ is true and $Q(1, 2)$ is false.
+- $L(x, y)$: “$x$ loves $y$”. $L(\text{Ada}, \text{Mathematics})$ is, we hope, true.
+- $T(s, c)$: “student $s$ has taken course $c$”, a predicate a university database answers thousands of times a day.
+
+### Building with connectives
+
+Everything from weeks 2 and 3 still works: once the blanks are filled, the results are propositions and we can combine them with $\neg, \land, \lor, \to, \leftrightarrow$. Let $P(x)$ be “$x > 0$”.
+
+| Expression | Value |
+|---|---|
+| $P(3) \lor P(-1)$ | true ∨ false = **true** |
+| $P(3) \land P(-1)$ | true ∧ false = **false** |
+| $P(3) \to P(-1)$ | true → false = **false** |
+| $P(3) \to \neg P(-1)$ | true → true = **true** |
+
+> [!try] Check yourself
+> Let $E(n)$ be “$n$ is even” and $D(n)$ be “$n$ is divisible by 4”. What are $D(12) \to E(12)$ and $E(6) \to D(6)$?
+
+<details>
+<summary>Answer</summary>
+
+$D(12) \to E(12)$ is true → true = **true**. $E(6) \to D(6)$ is true → false = **false**: 6 is even but not divisible by 4.
+</details>
+
+## The domain
+
+Before we can say “for all $x$” we must answer: **all $x$ from where?** That set is the **domain** (also called the *universe of discourse*), written $U$ or $D$.
+
+The domain is not a detail. It decides the answer:
+
+| Statement | Domain | True or false? |
+|---|---|---|
+| “every $x$ satisfies $x^2 \ge x$” | integers $\mathbb{Z}$ | **true** |
+| “every $x$ satisfies $x^2 \ge x$” | real numbers $\mathbb{R}$ | **false**: $x = 0.5$ gives $0.25 < 0.5$ |
+| “some $x$ satisfies $x^2 = 2$” | rational numbers $\mathbb{Q}$ | **false** ($\sqrt 2$ is irrational, week 7) |
+| “some $x$ satisfies $x^2 = 2$” | real numbers $\mathbb{R}$ | **true**: $x = \sqrt 2$ |
+
+> [!warning] Always state the domain
+> A quantified statement without a domain is like a function call without its argument. In exams, specifications and code reviews, say what $x$ ranges over: “students in this class”, “integers”, “HTTP requests received today”. Half of all disagreements about logic are really disagreements about the domain.
+
+## The universal quantifier ∀
+
+> [!definition] Universal quantification
+> $\forall x\, P(x)$ means “$P(x)$ is true for **every** $x$ in the domain.” It is true if $P(x)$ holds for each element, and false if there is at least one element for which $P(x)$ is false.
+
+The symbol $\forall$ is an upside-down A, for **A**ll. It reads “for all”, “for every”, “for each” or “for any”.
+
+> [!example] Two quick evaluations (domain: real numbers)
+> - $\forall x\,(x + 1 > x)$ is **true**: adding 1 always makes a number bigger.
+> - $\forall x\,(x < 2)$ is **false**: $x = 3$ breaks it.
+
+That $x = 3$ has a name.
+
+> [!definition] Counterexample
+> An element of the domain for which $P(x)$ is false is a **counterexample** to $\forall x\, P(x)$. **One counterexample is enough** to show that a universal statement is false.
+
+The asymmetry is the key to this whole topic:
+
+- To show $\forall x\, P(x)$ is **false**: find **one** counterexample. Easy.
+- To show $\forall x\, P(x)$ is **true**: you must cover **every** element. With a finite domain, check them all; with an infinite domain you need an **argument**, a proof (week 7). A thousand examples that work prove nothing about the thousand-and-first.
+
+### ∀ is a loop, and a big AND
+
+How would a computer evaluate $\forall x\, P(x)$ over a finite domain? It loops:
+
+```python
+def for_all(domain, P):
+    for x in domain:
+        if not P(x):
+            return False      # counterexample found: stop immediately
+    return True               # survived every element
+```
+
+Python has this built in: `all(P(x) for x in domain)`. It also stops at the first false value. When the domain is finite, say $U = \{1, 2, 3\}$, the loop is just a long conjunction:
+
+$$
+\forall x\, P(x) \;\equiv\; P(1) \land P(2) \land P(3)
+$$
+
+## The existential quantifier ∃
+
+> [!definition] Existential quantification
+> $\exists x\, P(x)$ means “there is **at least one** $x$ in the domain for which $P(x)$ is true.” It is true if some element makes $P(x)$ true, and false if $P(x)$ is false for every element.
+
+The symbol $\exists$ is a backwards E, for **E**xists. It reads “there exists”, “there is”, “for some” or “at least one”.
+
+> [!example] Two quick evaluations (domain: real numbers)
+> - $\exists x\,(x^2 = 4)$ is **true**: take $x = 2$ (or $x = -2$).
+> - $\exists x\,(x = x + 1)$ is **false**: no number equals itself plus one.
+
+> [!definition] Witness
+> An element that makes $P(x)$ true is a **witness** for $\exists x\, P(x)$. **One witness is enough** to show that an existential statement is true.
+
+The asymmetry is now reversed: proving $\exists$ true needs one example; proving $\exists$ **false** needs you to rule out **every** element.
+
+```python
+def exists(domain, P):
+    for x in domain:
+        if P(x):
+            return True       # witness found: stop immediately
+    return False              # nobody worked
+```
+
+That is `any(P(x) for x in domain)`, and over a finite domain it is a long disjunction:
+
+$$
+\exists x\, P(x) \;\equiv\; P(1) \lor P(2) \lor P(3)
+$$
+
+> [!note] “Some” means “at least one”
+> In mathematics, “some” does **not** mean “several” and does not mean “not all”. “Some student passed” is true even if exactly one student passed, and also if every student passed.
+
+### The two quantifiers side by side
+
+| | $\forall x\, P(x)$ | $\exists x\, P(x)$ |
+|---|---|---|
+| Read as | for every $x$ | there is an $x$ |
+| True when | $P(x)$ is true for **every** $x$ | $P(x)$ is true for **at least one** $x$ |
+| False when | there is an $x$ with $P(x)$ false | $P(x)$ is false for **every** $x$ |
+| Shown true by | an argument covering all $x$ | **one witness** |
+| Shown false by | **one counterexample** | an argument covering all $x$ |
+| Finite domain | $P(x_1) \land P(x_2) \land \dots$ | $P(x_1) \lor P(x_2) \lor \dots$ |
+| Python | `all(...)` | `any(...)` |
+
+> [!note] Uniqueness, briefly
+> Sometimes we need “there is **exactly one**”. It is written $\exists! x\, P(x)$. For example, $\exists! x\,(x + 1 = 0)$ is true over the integers (only $x = -1$), while $\exists! x\,(x^2 = 1)$ is false ($1$ and $-1$ both work).
+
+## Reading quantified formulas correctly
+
+### Precedence
+
+$\forall$ and $\exists$ bind **more tightly** than every connective. So
+
+$$
+\forall x\, P(x) \lor Q(x) \quad\text{means}\quad \big(\forall x\, P(x)\big) \lor Q(x), \qquad\text{not}\quad \forall x\,\big(P(x) \lor Q(x)\big).
+$$
+
+When the quantifier should cover more, use parentheses. In this course we always write the parentheses, and you should too.
+
+### Bound and free variables
+
+In $\exists x\,(x + y = 1)$ the variable $x$ is **bound** by the quantifier, while $y$ is **free**: nothing tells us its value. A formula with a free variable is still a predicate (a question with a blank), not a proposition. It becomes a proposition when **every** variable is either bound or given a value: $\exists x\,(x + 2 = 1)$ is true over the integers ($x = -1$).
+
+The **scope** of a quantifier is the part of the formula it covers, usually the parenthesis right after it. A bound variable can be renamed without changing the meaning, exactly like a loop variable in code: $\forall x\, P(x)$ and $\forall y\, P(y)$ say the same thing.
+
+## Restricted domains, and the golden rule
+
+Mathematics constantly quantifies over **part** of a domain: “every **negative** number”, “some **prime** number”, “every **student in this class**”. There is a short notation:
+
+$$
+\forall x < 0\;\, (x^2 > 0) \qquad\qquad \exists z > 0\;\, (z^2 = 2)
+$$
+
+What do these mean in plain predicate logic? Read them slowly.
+
+- “Every negative $x$ has $x^2 > 0$” means: for every $x$, **if** $x$ is negative, **then** $x^2 > 0$.
+- “Some positive $z$ has $z^2 = 2$” means: there is a $z$ that is positive **and** has $z^2 = 2$.
+
+$$
+\forall x < 0\;(x^2 > 0) \;\equiv\; \forall x\,\big(x < 0 \to x^2 > 0\big) \qquad \exists z > 0\;(z^2 = 2) \;\equiv\; \exists z\,\big(z > 0 \land z^2 = 2\big)
+$$
+
+This gives the single most useful rule of the week.
+
+> [!theorem] The golden rule of translation
+> **∀ goes with →.** “Every A is B” is $\forall x\,(A(x) \to B(x))$.
+>
+> **∃ goes with ∧.** “Some A is B” is $\exists x\,(A(x) \land B(x))$.
+
+The rule is not a convention. The other two combinations say something different, and the next section shows exactly why.
+
+### Seeing it with real data
+
+Our domain is eight people. Some are students in this class ($S$), some have taken Java ($J$). Pick a statement with the buttons, then **click the S and J values to change the data** and watch what happens. Pay attention to the two statements marked ✗.
+
+<QuantifierLab id="ql-week4" />
+
+What the lab shows, in words:
+
+- **$\forall x\,(S(x) \to J(x))$**, “every student has taken Java”. For people who are not students, $S(x)$ is false, so $S(x) \to J(x)$ is automatically true (week 2: a promise with a false hypothesis is never broken). The implication **filters**: only the students are tested. This is the correct translation.
+- **$\forall x\,(S(x) \land J(x))$** says “**everyone** is a student in this class **and** has taken Java”. Kerem, Mert and Lina are not students, so it is false even when every student took Java. Wrong translation: it accidentally claims that the whole domain consists of students.
+- **$\exists x\,(S(x) \land J(x))$**, “some student has taken Java”, needs one person who is both. Correct translation.
+- **$\exists x\,(S(x) \to J(x))$** is true as soon as there is **any non-student**, since the implication is vacuously true for them. It says almost nothing. Wrong translation. *Try it:* select it and flip **every** student's J to 0. Nobody in the class has taken Java, yet the formula stays true, held up by Kerem, Mert or Lina.
+
+> [!warning] The two classic mistakes
+> - $\forall x\,(A(x) \land B(x))$ when you mean “every A is B”: it claims that **everything** is an A.
+> - $\exists x\,(A(x) \to B(x))$ when you mean “some A is B”: it is satisfied by **anything that is not an A**.
+>
+> In an exam, these two cost more points than any other mistake in this module.
+
+## Translating English into logic
+
+Translation is a skill, and a recipe helps.
+
+> [!tip] A four-step recipe
+> 1. **Choose the domain.** Narrow (“students in this class”) or wide (“all people”)?
+> 2. **Name the predicates.** One letter per property, with a clear meaning: $S(x)$: $x$ is a student.
+> 3. **Find the quantifier word.** every, all, each, any → $\forall$. some, there is, at least one, a → $\exists$. no, none, nobody → $\neg\exists$.
+> 4. **Apply the golden rule**, then add the details with connectives.
+
+### Worked example: one sentence, two domains
+
+“Every student in this class has taken a course in Java.”
+
+- **Domain = students in this class.** Everybody in the domain is already a student, so no $S(x)$ is needed: $\forall x\, J(x)$.
+- **Domain = all people.** Now we must filter: $\forall x\,(S(x) \to J(x))$.
+
+Both are correct; they differ only because the domains differ. A narrower domain gives a shorter formula, a wider domain needs the filter.
+
+### A dictionary of sentence patterns
+
+| English | Logic |
+|---|---|
+| All A are B. | $\forall x\,(A(x) \to B(x))$ |
+| Some A are B. | $\exists x\,(A(x) \land B(x))$ |
+| No A is B. | $\neg\exists x\,(A(x) \land B(x))$ $\;\equiv\; \forall x\,(A(x) \to \neg B(x))$ |
+| Not all A are B. | $\neg\forall x\,(A(x) \to B(x))$ $\;\equiv\; \exists x\,(A(x) \land \neg B(x))$ |
+| Some A are not B. | $\exists x\,(A(x) \land \neg B(x))$ |
+| Only A are B. | $\forall x\,(B(x) \to A(x))$ |
+| Everything is A. | $\forall x\, A(x)$ |
+| Nothing is A. | $\neg\exists x\, A(x)$ $\;\equiv\; \forall x\, \neg A(x)$ |
+
+> [!warning] “Only” turns the arrow around
+> “Only students can borrow books” does **not** say every student can borrow books. It says: if someone can borrow books, they are a student. With $B(x)$: $x$ can borrow books, that is $\forall x\,(B(x) \to S(x))$. Compare week 2: “$p$ only if $q$” is $p \to q$.
+
+### Practice with a strange island
+
+Lewis Carroll style, from the lecture slides. The domain is all creatures; $F(x)$: $x$ is a fleegle, $S(x)$: $x$ is a snurd, $T(x)$: $x$ is a thingamabob. Cover the right column and translate first.
+
+| English | Logic |
+|---|---|
+| Everything is a fleegle. | $\forall x\, F(x)$ |
+| Nothing is a snurd. | $\neg\exists x\, S(x) \;\equiv\; \forall x\, \neg S(x)$ |
+| All fleegles are snurds. | $\forall x\,(F(x) \to S(x))$ |
+| Some fleegles are thingamabobs. | $\exists x\,(F(x) \land T(x))$ |
+| No snurd is a thingamabob. | $\neg\exists x\,(S(x) \land T(x)) \;\equiv\; \forall x\,(S(x) \to \neg T(x))$ |
+| If any fleegle is a snurd, then it is also a thingamabob. | $\forall x\,\big((F(x) \land S(x)) \to T(x)\big)$ |
+
+The last one hides a trap: “**any**” here means **every**. “If any fleegle is a snurd, then it is also a thingamabob” is a rule about each fleegle-snurd, so it is universal.
+
+### Specifications from systems
+
+Engineers write requirements in exactly this form. Let $L(m, y)$: message $m$ is larger than $y$ megabytes, $C(m)$: message $m$ is compressed, $A(u)$: user $u$ is active, $V(n)$: network link $n$ is available.
+
+| Requirement | Logic |
+|---|---|
+| Every mail message larger than one megabyte will be compressed. | $\forall m\,\big(L(m, 1) \to C(m)\big)$ |
+| If a user is active, at least one network link will be available. | $\forall u\,\big(A(u) \to \exists n\, V(n)\big)$ |
+
+The second one already contains two quantifiers, one inside the other. **Nested quantifiers** are next week's topic.
+
+### The lions argument
+
+Another classic from the slides. Domain: all creatures. $P(x)$: $x$ is a lion, $Q(x)$: $x$ is fierce, $R(x)$: $x$ drinks coffee.
+
+| Sentence | Logic |
+|---|---|
+| All lions are fierce. | $\forall x\,(P(x) \to Q(x))$ |
+| Some lions do not drink coffee. | $\exists x\,(P(x) \land \neg R(x))$ |
+| Therefore, some fierce creatures do not drink coffee. | $\exists x\,(Q(x) \land \neg R(x))$ |
+
+Is the argument valid? Take the lion that does not drink coffee (the witness of line 2). By line 1 it is fierce. So it is a fierce creature that does not drink coffee, a witness for line 3. In [week 6](/weeks/week-06) we will turn this kind of reasoning into formal rules of inference.
+
+### From logic back to English
+
+Going the other way is just as important: you must be able to **read** a formula. Let the domain be all students in your school, $C(x)$: $x$ has a computer, $F(x, y)$: $x$ and $y$ are friends.
+
+$$
+\forall x\,\Big(C(x) \lor \exists y\,\big(C(y) \land F(x, y)\big)\Big)
+$$
+
+Word by word: “for every student $x$, either $x$ has a computer, or there is a student $y$ who has a computer and is a friend of $x$.” Now say it like a human: “**Every student either has a computer or has a friend who has one.**” A good translation sounds like a sentence a person would actually say.
+
+## Negating quantified statements
+
+Your manager says: “**Every** test passed.” You find one failing test. What is the exact opposite of the manager's claim?
+
+- Not “**no** test passed”. That is far too strong.
+- It is: “**some** test did **not** pass.” One failing test is enough.
+
+That is the whole idea, written as two laws.
+
+> [!theorem] De Morgan's laws for quantifiers
+> $$
+> \neg\forall x\, P(x) \;\equiv\; \exists x\, \neg P(x) \qquad\qquad \neg\exists x\, P(x) \;\equiv\; \forall x\, \neg P(x)
+> $$
+> To negate, **swap the quantifier** ($\forall \leftrightarrow \exists$) and **push the negation inside**.
+
+Why are they called De Morgan's laws? Over a finite domain $\{1, 2, 3\}$, $\forall$ is a big ∧ and $\exists$ is a big ∨, so the first law is literally week 3's De Morgan:
+
+$$
+\neg\big(P(1) \land P(2) \land P(3)\big) \;\equiv\; \neg P(1) \lor \neg P(2) \lor \neg P(3)
+$$
+
+| Negation | Equivalent to | True when |
+|---|---|---|
+| $\neg\forall x\, P(x)$ | $\exists x\, \neg P(x)$ | at least one $x$ makes $P(x)$ false |
+| $\neg\exists x\, P(x)$ | $\forall x\, \neg P(x)$ | every $x$ makes $P(x)$ false |
+
+### Negating restricted statements, step by step
+
+The negation must keep the filter, so it combines De Morgan for quantifiers with week 3's $\neg(p \to q) \equiv p \land \neg q$.
+
+> [!example] Negate “every student in this class has taken Java”
+> $$
+> \begin{aligned}
+> \neg\forall x\,\big(S(x) \to J(x)\big) &\equiv \exists x\, \neg\big(S(x) \to J(x)\big) && \text{De Morgan for quantifiers}\\
+> &\equiv \exists x\,\big(S(x) \land \neg J(x)\big) && \neg(p \to q) \equiv p \land \neg q
+> \end{aligned}
+> $$
+> In English: “**some student in this class has not taken Java**.” Note that the negation of a ∀-with-→ statement is automatically an ∃-with-∧ statement: the golden rule survives negation.
+
+> [!example] Negate “some student in this class has taken Java”
+> $$
+> \begin{aligned}
+> \neg\exists x\,\big(S(x) \land J(x)\big) &\equiv \forall x\, \neg\big(S(x) \land J(x)\big) && \text{De Morgan for quantifiers}\\
+> &\equiv \forall x\,\big(\neg S(x) \lor \neg J(x)\big) && \text{De Morgan}\\
+> &\equiv \forall x\,\big(S(x) \to \neg J(x)\big) && p \to q \equiv \neg p \lor q
+> \end{aligned}
+> $$
+> In English: “**no student in this class has taken Java**,” or “every student in this class has not taken Java.”
+
+> [!example] Negate “there is an honest politician”
+> With $H(x)$: $x$ is honest, domain all politicians: $\neg\exists x\, H(x) \equiv \forall x\, \neg H(x)$, “**every** politician is dishonest.” It is **not** “some politician is dishonest”; that is the negation of a different sentence (“all politicians are honest”).
+
+> [!try] Negate these, then say them in English
+> 1. $\forall x\,(x^2 > x)$
+> 2. $\exists x\,(x^2 = 2)$
+> 3. “Every request is authenticated.”
+
+<details>
+<summary>Answers</summary>
+
+1. $\exists x\,(x^2 \le x)$: “some number is at least as large as its own square.” Over the integers it is true, with witnesses $x = 0$ and $x = 1$.
+2. $\forall x\,(x^2 \ne 2)$: “no number squares to 2”. True over $\mathbb{Q}$, false over $\mathbb{R}$.
+3. “Some request is not authenticated.” With $R(x)$: $x$ is a request and $A(x)$: $x$ is authenticated: $\neg\forall x\,(R(x) \to A(x)) \equiv \exists x\,(R(x) \land \neg A(x))$.
+</details>
+
+## Equivalences, and two traps
+
+Two distributive laws hold for quantifiers:
+
+$$
+\forall x\,\big(P(x) \land Q(x)\big) \;\equiv\; \forall x\, P(x) \land \forall x\, Q(x) \qquad\qquad \exists x\,\big(P(x) \lor Q(x)\big) \;\equiv\; \exists x\, P(x) \lor \exists x\, Q(x)
+$$
+
+“Everyone is tall and smart” says the same as “everyone is tall, and everyone is smart.” Fine. But the other two combinations **fail**:
+
+> [!warning] ∀ does not distribute over ∨, and ∃ does not distribute over ∧
+> Domain: the integers, $E(x)$: $x$ is even, $O(x)$: $x$ is odd.
+> - $\forall x\,(E(x) \lor O(x))$ is **true**: every integer is even or odd. But $\forall x\, E(x) \lor \forall x\, O(x)$ is **false**: the integers are neither all even nor all odd.
+> - $\exists x\, E(x) \land \exists x\, O(x)$ is **true**: 2 is even and 3 is odd. But $\exists x\,(E(x) \land O(x))$ is **false**: no integer is both.
+
+## Quantifiers in code and data
+
+You will meet ∀ and ∃ every day as a software engineer, usually without the symbols.
+
+**Python.** `all()` is $\forall$ and `any()` is $\exists$, both with short-circuiting:
+
+```python
+grades = {"Ada": 92, "Can": 78, "Deniz": 45}
+
+all(g >= 50 for g in grades.values())     # ∀: did everyone pass?  → False
+any(g >= 90 for g in grades.values())     # ∃: did anyone get an A? → True
+not any(g < 0 for g in grades.values())   # ¬∃ ≡ ∀¬: no negative grades → True
+```
+
+Note one subtle point: `all([])` is `True` and `any([])` is `False`. A ∀ statement over an **empty** domain is vacuously true (there is no counterexample), and an ∃ statement over an empty domain is false (there is no witness).
+
+**SQL.** A `WHERE` clause is a predicate, and `EXISTS` is $\exists$. SQL has **no** `FOR ALL`. To ask “has every student taken Java?”, a database uses this week's law, $\forall x\,(S \to J) \equiv \neg\exists x\,(S \land \neg J)$:
+
+```sql
+SELECT NOT EXISTS (
+  SELECT * FROM people
+  WHERE is_student AND NOT took_java
+) AS every_student_took_java;
+```
+
+**Testing.** A unit test checks one example: an ∃-style piece of evidence. Property-based testing states a ∀ property and lets the computer hunt for a counterexample:
+
+```python
+from hypothesis import given, strategies as st
+
+@given(st.lists(st.integers()))
+def test_sorting_keeps_length(xs):        # ∀ lists xs: len(sorted(xs)) == len(xs)
+    assert len(sorted(xs)) == len(xs)
+```
+
+If the property is false, Hypothesis prints a **counterexample**, and usually the smallest one it can find.
+
+## A look ahead: nested quantifiers
+
+Many real statements need two quantifiers, one inside the other. “Every user has a password” is $\forall u\, \exists p\; \text{Has}(u, p)$. And the **order** matters enormously: “for every number there is a bigger one” ($\forall x\, \exists y\; y > x$, true) is very different from “there is a number bigger than every number” ($\exists y\, \forall x\; y > x$, false). That is the whole of [week 5](/weeks/week-05).
+
+## Summary
+
+- A **predicate** $P(x)$ is a statement with a variable: a yes/no question with a blank. It becomes a proposition when the blank is filled.
+- Always fix the **domain**; the same statement can be true in one domain and false in another.
+- $\forall x\, P(x)$: true for **every** $x$. Disproved by **one counterexample**. Over finite data it is a big ∧ and `all()`.
+- $\exists x\, P(x)$: true for **at least one** $x$. Proved by **one witness**. Over finite data it is a big ∨ and `any()`.
+- **Golden rule:** ∀ goes with →, ∃ goes with ∧. $\forall x\,(A \land B)$ and $\exists x\,(A \to B)$ are the two classic mistakes.
+- **Negation:** swap the quantifier and push ¬ inside. $\neg\forall x\,(A \to B) \equiv \exists x\,(A \land \neg B)$ and $\neg\exists x\,(A \land B) \equiv \forall x\,(A \to \neg B)$.
+- ∀ distributes over ∧ and ∃ over ∨, but **not** the other way round.
+
+## Practice
+
+> [!try] Exercises
+> Domain: all students at Fırat University. $C(x)$: $x$ is in this class, $P(x)$: $x$ knows Python, $G(x)$: $x$ has a GitHub account.
+> 1. Translate: “Every student in this class has a GitHub account.”
+> 2. Translate: “Some student in this class does not know Python.”
+> 3. Translate: “Only students who know Python are in this class.”
+> 4. Negate sentence 1, in logic and in English.
+> 5. Translate into English: $\neg\exists x\,\big(C(x) \land \neg P(x) \land \neg G(x)\big)$.
+> 6. True or false over the integers? Give a witness or a counterexample: (a) $\forall n\,(n^2 \ge n)$, (b) $\exists n\,(n^2 = n + 2)$, (c) $\forall n\,(n \text{ even} \to n^2 \text{ even})$.
+
+<details>
+<summary>Answers</summary>
+
+1. $\forall x\,(C(x) \to G(x))$.
+2. $\exists x\,(C(x) \land \neg P(x))$.
+3. $\forall x\,(C(x) \to P(x))$. Being in this class requires knowing Python: “only Python-knowers are in the class” means “if in the class, then knows Python”.
+4. $\neg\forall x\,(C(x) \to G(x)) \equiv \exists x\,(C(x) \land \neg G(x))$: “some student in this class has no GitHub account.”
+5. “No student in this class knows neither Python nor has a GitHub account”, or more naturally: “every student in this class knows Python or has a GitHub account.” Check: $\neg\exists x\,(C \land \neg P \land \neg G) \equiv \forall x\,(C \to (P \lor G))$.
+6. (a) **True** for all integers: if $n \le 0$ then $n^2 \ge 0 \ge n$, and if $n \ge 1$ then $n^2 = n \cdot n \ge n$. (b) **True**, witness $n = 2$: $4 = 2 + 2$ (also $n = -1$). (c) **True**: if $n = 2k$ then $n^2 = 4k^2 = 2(2k^2)$ is even. This last one is our first real proof; week 7 does many more.
+</details>
+
+## Before the lab
+
+[Lab 3](/labs/lab-03) puts this week into code: you will evaluate ∀ and ∃ statements over a real student–course dataset with `all()` and `any()`, find witnesses and counterexamples automatically, and check De Morgan's laws for quantifiers on data.

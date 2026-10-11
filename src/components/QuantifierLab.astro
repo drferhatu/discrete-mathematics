@@ -1,0 +1,216 @@
+---
+/**
+ * Quantifier Lab: evaluate ∀/∃ statements over a small table of people.
+ * Click a cell in the S or J column to flip it. Each preset shows the logic, the English reading,
+ * Python (all/any) and SQL, the value of the body for every row, and where the loop stops.
+ */
+interface Props { id?: string; initial?: string; }
+const { id = 'ql', initial = 'every-student' } = Astro.props;
+const people = [
+  { name: 'Ada', s: true, j: true },
+  { name: 'Can', s: true, j: true },
+  { name: 'Deniz', s: true, j: false },
+  { name: 'Elif', s: true, j: true },
+  { name: 'Kerem', s: false, j: true },
+  { name: 'Mert', s: false, j: false },
+  { name: 'Selin', s: true, j: true },
+  { name: 'Lina', s: false, j: false },
+];
+const presets = [
+  { id: 'all-java', label: '∀x J(x)', ok: '' },
+  { id: 'every-student', label: '∀x (S(x) → J(x))', ok: 'right' },
+  { id: 'wrong-and', label: '∀x (S(x) ∧ J(x))', ok: 'wrong' },
+  { id: 'some-student', label: '∃x (S(x) ∧ J(x))', ok: 'right' },
+  { id: 'wrong-imp', label: '∃x (S(x) → J(x))', ok: 'wrong' },
+  { id: 'negation', label: '∃x (S(x) ∧ ¬J(x))', ok: '' },
+  { id: 'no-student', label: '¬∃x (S(x) ∧ ¬J(x))', ok: '' },
+];
+---
+<div class="qlab card my-8 overflow-hidden shadow-soft" data-qlab id={id} data-initial={initial} data-people={JSON.stringify(people)}>
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">quantifier lab · domain = the 8 people below</span>
+    <span class="font-mono text-[11px] text-ink-3">S(x): x is a student in this class · J(x): x has taken Java</span>
+  </div>
+
+  <div class="flex flex-wrap gap-1.5 px-4 pt-4 sm:px-5">
+    {presets.map((p) => (
+      <button type="button" data-q={p.id}
+        class="q-btn rounded-md border border-line px-2.5 py-1.5 font-mono text-[12px] text-ink-2 hover:border-brand hover:text-brand">
+        {p.label}{p.ok === 'wrong' && <span class="ml-1 text-false">✗</span>}
+      </button>
+    ))}
+  </div>
+
+  <div class="grid grid-cols-1 gap-5 p-4 sm:p-5">
+    <div>
+      <p data-q-english class="text-[15px] font-semibold leading-snug text-ink"></p>
+      <p data-q-logic class="mt-1 font-mono text-sm text-brand"></p>
+      <div class="mt-4 overflow-x-auto rounded-lg border border-line">
+        <table class="w-full border-collapse text-center font-mono text-[13px]">
+          <thead class="bg-paper-2">
+            <tr>
+              <th class="px-2 py-2 text-left font-semibold text-ink">x</th>
+              <th class="px-2 py-2 font-semibold text-ink" title="click a cell to flip it">S(x)</th>
+              <th class="px-2 py-2 font-semibold text-ink" title="click a cell to flip it">J(x)</th>
+              <th class="px-2 py-2 font-semibold text-brand" data-q-bodyhead>body</th>
+              <th class="px-2 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-ink-3">loop</th>
+            </tr>
+          </thead>
+          <tbody data-q-rows></tbody>
+        </table>
+      </div>
+      <p class="mt-2 text-xs text-ink-3">Click any S or J value to flip it, and watch the verdict change.</p>
+    </div>
+
+    <div class="min-w-0 border-t border-line pt-5">
+      <p data-q-verdict class="rounded-lg px-3 py-2 font-mono text-sm font-semibold"></p>
+      <p data-q-why class="mt-3 text-[15px] leading-relaxed text-ink-2"></p>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <div class="min-w-0"><p class="eyebrow">Python</p>
+          <pre class="mt-1 whitespace-pre-wrap break-words rounded-lg border border-line bg-paper px-3 py-2 font-mono text-[12px] text-ink"><code data-q-py></code></pre></div>
+        <div class="min-w-0"><p class="eyebrow">SQL</p>
+          <pre class="mt-1 whitespace-pre-wrap break-words rounded-lg border border-line bg-paper px-3 py-2 font-mono text-[12px] text-ink"><code data-q-sql></code></pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  /* global: the rows are created by the script, so scoped styles would not reach them */
+  .qlab .q-btn[aria-pressed='true'] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+  .qlab .q-cell { cursor: pointer; }
+  .qlab .q-cell:hover .tv { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .qlab .q-row.is-stop { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .qlab .q-row.is-stop td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  .qlab .q-row.is-skipped { opacity: 0.4; }
+</style>
+
+<script>
+  type P = { name: string; s: boolean; j: boolean };
+  type Q = {
+    english: string; logic: string; kind: 'forall' | 'exists' | 'not-exists';
+    body: (p: P) => boolean; bodyLabel: string; py: string; sql: string;
+    why: (r: { value: boolean; stop?: P; people: P[] }) => string;
+  };
+  const studentsWithoutJava = (ps: P[]) => ps.filter((p) => p.s && !p.j).map((p) => p.name);
+
+  const QS: Record<string, Q> = {
+    'all-java': {
+      english: 'Everyone has taken Java.', logic: '∀x J(x)', kind: 'forall',
+      body: (p) => p.j, bodyLabel: 'J(x)',
+      py: 'all(p.java for p in people)',
+      sql: 'NOT EXISTS (SELECT * FROM people\n            WHERE NOT java)',
+      why: ({ value, stop }) => value
+        ? 'Every row is true, so the universal statement is true.'
+        : `One counterexample is enough: ${stop!.name} has not taken Java, so ∀ is false. all() stops at that row; the rest is never checked.`,
+    },
+    'every-student': {
+      english: 'Every student in this class has taken Java.', logic: '∀x (S(x) → J(x))', kind: 'forall',
+      body: (p) => !p.s || p.j, bodyLabel: 'S→J',
+      py: 'all(p.java for p in people if p.student)\n# same as: all((not p.student) or p.java for p in people)',
+      sql: "NOT EXISTS (SELECT * FROM people\n            WHERE student AND NOT java)",
+      why: ({ value, stop }) => value
+        ? 'True. Non-students make S(x) false, so S(x) → J(x) is (vacuously) true for them: the implication only checks the students. This is the correct translation.'
+        : `False, because of a student who has not taken Java: ${stop!.name}. Non-students never break the statement; for them S(x) → J(x) is automatically true. Flip ${stop!.name}'s J to see it become true.`,
+    },
+    'wrong-and': {
+      english: 'Everyone is a student in this class AND has taken Java. (wrong translation)', logic: '∀x (S(x) ∧ J(x))', kind: 'forall',
+      body: (p) => p.s && p.j, bodyLabel: 'S∧J',
+      py: 'all(p.student and p.java for p in people)',
+      sql: "NOT EXISTS (SELECT * FROM people\n            WHERE NOT (student AND java))",
+      why: ({ value, stop, people }) => value
+        ? 'True only because every single person in the domain is a student with Java. Change any S to 0 and it collapses.'
+        : `False, and look why: ${stop!.name}${stop!.s ? ' has not taken Java' : ' is not a student'}. ${studentsWithoutJava(people).length === 0 ? 'Every student has taken Java, yet the formula fails, because it' : 'This formula'} demands that everyone in the whole domain be a student. That is not what the sentence says. With ∀, use →, not ∧.`,
+    },
+    'some-student': {
+      english: 'Some student in this class has taken Java.', logic: '∃x (S(x) ∧ J(x))', kind: 'exists',
+      body: (p) => p.s && p.j, bodyLabel: 'S∧J',
+      py: 'any(p.student and p.java for p in people)',
+      sql: 'EXISTS (SELECT * FROM people\n        WHERE student AND java)',
+      why: ({ value, stop }) => value
+        ? `True. One witness is enough: ${stop!.name} is a student who has taken Java. any() stops at the first witness.`
+        : 'False: no row makes the body true. To prove an ∃ statement false you must check every row.',
+    },
+    'wrong-imp': {
+      english: 'There is someone who, if a student, has taken Java. (wrong translation)', logic: '∃x (S(x) → J(x))', kind: 'exists',
+      body: (p) => !p.s || p.j, bodyLabel: 'S→J',
+      py: 'any((not p.student) or p.java for p in people)',
+      sql: 'EXISTS (SELECT * FROM people\n        WHERE NOT student OR java)',
+      why: ({ value, stop }) => value
+        ? `True, but for a silly reason if the witness is not a student: ${stop!.name}${stop!.s ? ' is a student with Java, a real witness' : ' is not a student, so S → J is vacuously true'}. Any non-student makes this formula true, whatever the students did. With ∃, use ∧, not →.`
+        : 'False only if every person is a student without Java.',
+    },
+    'negation': {
+      english: 'Some student in this class has NOT taken Java.', logic: '∃x (S(x) ∧ ¬J(x))  ≡  ¬∀x (S(x) → J(x))', kind: 'exists',
+      body: (p) => p.s && !p.j, bodyLabel: 'S∧¬J',
+      py: 'any(p.student and not p.java for p in people)',
+      sql: 'EXISTS (SELECT * FROM people\n        WHERE student AND NOT java)',
+      why: ({ value, stop }) => value
+        ? `True: the witness is ${stop!.name}. This is exactly the negation of “every student has taken Java”: ¬∀ becomes ∃¬, and ¬(S → J) becomes S ∧ ¬J.`
+        : 'False: every student has taken Java, so the negated statement fails while the original “every student has taken Java” holds.',
+    },
+    'no-student': {
+      english: 'No student in this class has skipped Java.', logic: '¬∃x (S(x) ∧ ¬J(x))  ≡  ∀x (S(x) → J(x))', kind: 'not-exists',
+      body: (p) => p.s && !p.j, bodyLabel: 'S∧¬J',
+      py: 'not any(p.student and not p.java for p in people)',
+      sql: 'NOT EXISTS (SELECT * FROM people\n            WHERE student AND NOT java)',
+      why: ({ value, stop }) => value
+        ? 'True: no row makes the body true. Same truth value as “every student has taken Java”. SQL has no FOR ALL, so databases write ∀ exactly like this: NOT EXISTS … NOT.'
+        : `False: ${stop!.name} is a student without Java. ¬∃ is ∀¬, so one such student breaks it.`,
+    },
+  };
+
+  const tv = (b: boolean) => `<span class="tv ${b ? 'tv-1' : 'tv-0'}">${b ? 1 : 0}</span>`;
+
+  document.querySelectorAll<HTMLElement>('[data-qlab]').forEach((root) => {
+    const people: P[] = JSON.parse(root.dataset.people!);
+    let current = root.dataset.initial || 'every-student';
+    const $ = (s: string) => root.querySelector<HTMLElement>(s)!;
+
+    const render = () => {
+      const q = QS[current];
+      root.querySelectorAll<HTMLButtonElement>('[data-q]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.q === current)));
+      $('[data-q-english]').textContent = q.english;
+      $('[data-q-logic]').textContent = q.logic;
+      $('[data-q-bodyhead]').textContent = q.bodyLabel;
+      $('[data-q-py]').textContent = q.py;
+      $('[data-q-sql]').textContent = q.sql;
+
+      const vals = people.map(q.body);
+      // where all() / any() stop: first false for ∀, first true for ∃ and ¬∃
+      const stopIdx = q.kind === 'forall' ? vals.indexOf(false) : vals.indexOf(true);
+      const value = q.kind === 'forall' ? stopIdx === -1 : q.kind === 'exists' ? stopIdx !== -1 : stopIdx === -1;
+      const stop = stopIdx >= 0 ? people[stopIdx] : undefined;
+
+      $('[data-q-rows]').innerHTML = people.map((p, i) => {
+        const cls = i === stopIdx ? 'is-stop' : stopIdx >= 0 && i > stopIdx ? 'is-skipped' : '';
+        const tag = i === stopIdx ? (q.kind === 'forall' ? 'counterexample' : q.kind === 'exists' ? 'witness' : 'breaks ¬∃') : '';
+        return `<tr class="q-row ${cls} border-t border-line">
+          <td class="px-2 py-1.5 text-left text-ink">${p.name}</td>
+          <td class="q-cell px-2 py-1.5" data-flip="s" data-i="${i}">${tv(p.s)}</td>
+          <td class="q-cell px-2 py-1.5" data-flip="j" data-i="${i}">${tv(p.j)}</td>
+          <td class="px-2 py-1.5">${tv(vals[i])}</td>
+          <td class="whitespace-nowrap px-2 py-1.5 text-left text-[11px] font-semibold text-accent">${tag ? '← ' + tag : (stopIdx >= 0 && i > stopIdx ? '<span class=\"font-normal text-ink-3\">not checked</span>' : '')}</td>
+        </tr>`;
+      }).join('');
+
+      const v = $('[data-q-verdict]');
+      v.textContent = value ? '✓ TRUE in this domain' : '✗ FALSE in this domain';
+      v.className = 'rounded-lg px-3 py-2 font-mono text-sm font-semibold ' + (value ? 'bg-true-soft text-true' : 'bg-false-soft text-false');
+      $('[data-q-why]').textContent = q.why({ value, stop, people });
+    };
+
+    root.addEventListener('click', (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLElement>('[data-flip]');
+      if (t) {
+        const p = people[Number(t.dataset.i)];
+        if (t.dataset.flip === 's') p.s = !p.s; else p.j = !p.j;
+        render();
+        return;
+      }
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-q]');
+      if (b) { current = b.dataset.q!; render(); }
+    });
+    render();
+  });
+</script>
