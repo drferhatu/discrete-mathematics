@@ -1,0 +1,249 @@
+---
+lab: 3
+week: 4
+title: "Quantifiers over Real Data"
+description: "Write ∀ and ∃ as loops, find counterexamples and witnesses, answer questions about a class of students with the golden rule, and put De Morgan's laws for quantifiers into code."
+assignment: lab03
+mode: classroom50
+status: open
+duration: "75 min + finish at home"
+points: 100
+files: ["quantifiers.py"]
+topics: ["∀ and ∃ as loops", "counterexample", "witness", "golden rule", "De Morgan"]
+notebook: { file: "labs/templates/lab03/lab03.ipynb", title: "Lab 3 · Explore: ∀ and ∃ in pandas and SQL" }
+---
+
+## Goal
+
+This lab turns the [week 4 notes](/weeks/week-04) into code. You will write:
+
+- your own **for all** and **there exists**, as simple loops,
+- functions that find a **counterexample** and a **witness**,
+- the **golden rule** (∀ goes with →, ∃ goes with ∧) as two reusable functions,
+- answers to five questions about a class of students,
+- **De Morgan's laws for quantifiers**, written so that the code itself follows the law.
+
+Everything is in **one file**, `quantifiers.py`, and every task is a few lines long. Work **top to bottom**: later functions reuse earlier ones.
+
+> [!note] You can start without the instructor
+> Everything you need is on this page. Do one step, run `python check.py`, and move on when its checks show `:)`. Ask your neighbor first, then the instructor. Stuck on one step for more than 10 minutes? Write down the error message and skip to the next step.
+
+## Steps
+
+<Step n={1} title="Accept Lab 3 and open it" time="3 min" id="accept">
+
+1. Click the orange **Accept lab lab03** button at the top of this page, then **Accept assignment**.
+2. When the checklist finishes, click **Open repository**.
+3. Green **Code** button → **Codespaces** → **Create codespace on main**.
+
+First time with Classroom 50, or you missed Lab 2? Do [Lab 2, step 1](/labs/lab-02#join) first: you must have joined the course organization.
+
+Prefer your own computer or another editor? That is fine too, see [Other ways to work and submit](#other-ways-to-work-and-submit).
+
+</Step>
+
+<Step n={2} title="Meet the data and run the checks" time="5 min" id="look">
+
+Open `data.py`. It holds ten **fictional** students. Each student is a Python dictionary:
+
+```python
+{"name": "Ada", "year": 2, "langs": {"Python", "C"}, "github": True, "math": 92}
+```
+
+| Key | Meaning | How to read it in code |
+|---|---|---|
+| `name` | first name | `s["name"]` |
+| `year` | 1, 2, 3 or 4 | `s["year"] == 2` |
+| `langs` | set of languages | `"Python" in s["langs"]` |
+| `github` | has a GitHub account | `s["github"]` |
+| `math` | Math I grade, 0–100 | `s["math"] < 50` means failed |
+
+Now run the checks once, before writing anything:
+
+<Terminal cmd="python check.py" out={`:| for_all: [2, 4, 6] all even → True, [2, 3, 6] → False, [] → True
+    not implemented yet (still raises NotImplementedError)
+...
+0/17 checks passed`} />
+
+One more idea before you start. In this lab a **predicate** is a small function that takes one element and returns `True` or `False`. Python's `lambda` writes it in one line:
+
+```python
+is_even = lambda n: n % 2 == 0           # P(n): "n is even"
+has_github = lambda s: s["github"]       # G(s): "s has a GitHub account"
+is_even(4)                               # True
+```
+
+</Step>
+
+<Step n={3} title="for_all: ∀ as a loop" time="8 min" id="for-all">
+
+**What:** `for_all(domain, P)` answers “is `P(x)` true for **every** `x` in the domain?”
+
+**How:** go through the domain with a `for` loop. The moment you find an `x` where `P(x)` is false, you have a **counterexample**: return `False` immediately. If the loop ends without finding one, return `True`.
+
+```python
+for_all([2, 4, 6], lambda n: n % 2 == 0)    # True
+for_all([2, 3, 6], lambda n: n % 2 == 0)    # False: 3 is a counterexample
+for_all([], lambda n: False)                # True: nothing to break it
+```
+
+> [!warning] Write the loop yourself
+> Do not use `all()` here. The checks look for it. The point is to see that “for all” **is** a loop that can stop early. The checks also verify that your loop stops at the first counterexample instead of looking at everything.
+
+</Step>
+
+<Step n={4} title="exists: ∃ as a loop" time="5 min" id="exists">
+
+**What:** `exists(domain, P)` answers “is there **at least one** `x` with `P(x)` true?”
+
+**How:** the mirror image of `for_all`. Return `True` at the first **witness**; if the loop ends, return `False`. Again, no `any()`.
+
+```python
+exists([1, 3, 4], lambda n: n % 2 == 0)     # True: 4 is a witness
+exists([1, 3, 5], lambda n: n % 2 == 0)     # False
+exists([], lambda n: True)                  # False: no witness in an empty domain
+```
+
+> [!tip] Why is `for_all([])` True but `exists([])` False?
+> For ∀ to be false you need a counterexample, and an empty list has none. For ∃ to be true you need a witness, and an empty list has none. This is the “vacuous truth” from the notes.
+
+</Step>
+
+<Step n={5} title="counterexample and witness" time="5 min" id="ce-witness">
+
+**What:** the same two loops, but instead of `True`/`False` they return the **element** they stopped at.
+
+- `counterexample(domain, P)`: the first `x` with `P(x)` **false**, or `None`.
+- `witness(domain, P)`: the first `x` with `P(x)` **true**, or `None`.
+
+```python
+counterexample([2, 3, 5], lambda n: n % 2 == 0)   # 3
+witness([1, 3, 4, 6], lambda n: n % 2 == 0)       # 4
+witness([1, 3], lambda n: n % 2 == 0)             # None
+```
+
+These are what a real program needs: not only “false”, but **who** made it false.
+
+</Step>
+
+<Step n={6} title="every_such_that and some_such_that: the golden rule" time="10 min" id="golden">
+
+**What:** sentences like “**every** second-year knows Python” have a **filter** (A: is a second-year) and a **property** (B: knows Python). From the notes:
+
+- “Every A is B” is **∀x (A(x) → B(x))**.
+- “Some A is B” is **∃x (A(x) ∧ B(x))**.
+
+**How:** build a new predicate and pass it to your own `for_all` or `exists`:
+
+- for `every_such_that`: the predicate `lambda x: (not A(x)) or B(x)` (that is A → B),
+- for `some_such_that`: the predicate `lambda x: A(x) and B(x)`.
+
+```python
+big  = lambda n: n > 2
+even = lambda n: n % 2 == 0
+every_such_that([1, 2, 3, 4], big, even)   # False: 3 is big but odd
+every_such_that([1, 2, 4], big, even)      # True: the only big number, 4, is even
+some_such_that([1, 2, 3], big, even)       # False: no big even number
+```
+
+> [!warning] The classic mistake, again
+> If you write `A(x) and B(x)` inside `every_such_that`, the checks fail: that would say “**everything** is A and B”. Elements that do not pass the filter must never make a “for every A” sentence false.
+
+</Step>
+
+<Step n={7} title="Q1–Q5: questions about the class" time="15 min" id="questions">
+
+Now the real data. Each question is one function with a parameter `students` (it defaults to the class in `data.py`). Answer each with **one line** that uses your functions from steps 3–6.
+
+| Function | Question | Logic | Use |
+|---|---|---|---|
+| `everyone_has_github` | Every student has a GitHub account. | $\forall s\, G(s)$ | `for_all` |
+| `someone_knows_java` | Some student knows Java. | $\exists s\, J(s)$ | `exists` |
+| `every_second_year_knows_python` | Every second-year student knows Python. | $\forall s\,(Y_2(s) \to P(s))$ | `every_such_that` |
+| `no_first_year_failed_math` | No first-year student failed Math I. | $\neg\exists s\,(Y_1(s) \land F(s))$ | `not some_such_that(...)` |
+| `who_breaks_q3` | Name of a second-year who does not know Python. | counterexample of Q3 | `counterexample` |
+
+An example of the style, for Q1:
+
+```python
+def everyone_has_github(students=STUDENTS):
+    return for_all(students, lambda s: s["github"])
+```
+
+For Q5, find the counterexample **student** first, then return `s["name"]` (or `None` if there is none). Use `students` inside your functions, never `STUDENTS` directly: the checks also ask your functions about **other classes** to make sure the answers are computed, not typed in.
+
+<Terminal cmd="python quantifiers.py" out={`Q1 everyone has GitHub          : False
+Q2 someone knows Java           : True
+Q3 every 2nd-year knows Python  : False
+Q4 no 1st-year failed Math I    : True
+Q5 who breaks Q3                : Fırat`} />
+
+Look at `data.py` and confirm each answer by eye: who has no GitHub account? Which second-year does not know Python?
+
+</Step>
+
+<Step n={8} title="not_all and not_any: De Morgan in code" time="8 min" id="de-morgan">
+
+**What:** the two laws from the notes,
+
+$$
+\neg\forall x\, P(x) \;\equiv\; \exists x\, \neg P(x) \qquad\qquad \neg\exists x\, P(x) \;\equiv\; \forall x\, \neg P(x)
+$$
+
+**How:** write the **right-hand side**.
+
+- `not_all(domain, P)`: call `exists` with a predicate that is the **opposite** of `P`: `lambda x: not P(x)`.
+- `not_any(domain, P)`: call `for_all` with that opposite predicate.
+
+The checks compare your answers with Python's `not all(...)` and `not any(...)` on 60 random lists, **and** read your code to make sure `not_all` really uses `exists` and `not_any` really uses `for_all`. Writing `not for_all(domain, P)` gives the right value but skips the law, so it does not pass.
+
+</Step>
+
+<Step n={9} title="Submit" time="1 min" id="submit">
+
+When `python check.py` shows `17/17 checks passed` (or you have done what you can), push. **Every push is graded, out of 100.**
+
+<Terminal lines={['git add -A', 'git commit -m "Lab 3"', 'git push']} />
+
+About two minutes later your score appears under **Releases** on your repository page. The last push before **Friday 23:59** counts.
+
+</Step>
+
+## Other ways to work and submit
+
+You do not have to use Codespaces or a terminal.
+
+**Work anywhere:** your own computer (download the repository with **Code → Download ZIP**, then `pip install pytest` and `python check.py`), [cs50.dev](https://cs50.dev), Google Colab, or [github.dev](https://github.dev) (press <span class="kbd">.</span> on your repository page).
+
+**Submit from the browser:**
+
+- **Paste:** open `quantifiers.py` in your repository on github.com → pencil icon ✎ → select all and paste your **whole** file → **Commit changes**.
+- **Upload:** **Add file → Upload files** → drag `quantifiers.py` in → **Commit changes**.
+
+Keep the file name exactly `quantifiers.py` and do not change `data.py`. Every commit is graded the same way as a push.
+
+## Explore: the notebook
+
+Ask the **same five questions** in pandas and in a real SQL database, see that SQL writes “for all” as `NOT EXISTS … NOT`, watch the two classic mistakes give silly answers on real data, and let a loop hunt for a counterexample to a famous “prime formula”.
+
+<NotebookEmbed file="labs/templates/lab03/lab03.ipynb" title="Lab 3 · Explore notebook" />
+
+## Challenges (optional, not graded)
+
+1. **Exactly one.** Write `exactly_one(domain, P)` for $\exists! x\, P(x)$. Is there exactly one fourth-year student who knows SQL?
+2. **All the counterexamples.** Write `all_counterexamples(domain, P)` that returns a list instead of stopping at the first.
+3. **Your own question.** Invent a question about the class with a filter, write it in logic, and answer it in one line.
+
+## Troubleshooting
+
+> [!note] `KeyError: 'Github'` or similar
+> Dictionary keys are case-sensitive: `s["github"]`, `s["langs"]`, `s["year"]`, `s["math"]`, `s["name"]`.
+
+> [!note] Q5 returns a dictionary instead of a name
+> `counterexample` gives you the whole student. Return `s["name"]`, and `None` if there is no counterexample.
+
+> [!note] The Part A check says I use `all` or `any`
+> Replace them with a `for` loop in `for_all` and `exists`. From Part B on, using your own `for_all`/`exists` is the intended way.
+
+> [!note] My answers are right for `data.py` but “other classes” fails
+> Inside the Q functions, use the parameter `students`, not the global `STUDENTS`.

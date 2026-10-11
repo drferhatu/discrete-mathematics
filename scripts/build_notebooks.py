@@ -233,9 +233,104 @@ md("""## Your turn
 3. Find a full adder with fewer NAND gates than section 4 (hint: reuse the `NAND(a, b)` inside XOR)."""),
 ]
 
+# ---------------------------------------------------------------------------
+# LAB 3 · Quantifiers in pandas and SQL
+# ---------------------------------------------------------------------------
+LAB03 = [
+md("""# Lab 3 · Explore: ∀ and ∃ in pandas and in a real SQL database
+
+**Discrete Mathematics (YMT211)** · Fall 2026
+
+The playground half of Lab 3. Nothing here is graded. You will ask the **same questions** as in `quantifiers.py`,
+first with a table library (pandas), then with a real SQL database. Watch how ∀ and ∃ show up everywhere."""),
+md("""## 1 · The class as a table
+
+The same ten fictional students as in `data.py`, written out here so the notebook also runs on its own."""),
+code("""import pandas as pd
+
+STUDENTS = [
+    ("Ada", 2, "Python,C", True, 92), ("Bora", 1, "Python", True, 67), ("Cemre", 2, "Python,Java", True, 74),
+    ("Doruk", 3, "Java,C,SQL", False, 58), ("Ece", 1, "C", True, 81), ("Fırat", 2, "Java", True, 49),
+    ("Gizem", 4, "Python,SQL", True, 88), ("Hakan", 1, "", False, 55), ("Irmak", 3, "Python,Java,C", True, 95),
+    ("Kaan", 2, "Python", False, 62),
+]
+df = pd.DataFrame(STUDENTS, columns=["name", "year", "langs", "github", "math"])
+df["python"] = df.langs.str.contains("Python")
+df["java"] = df.langs.str.contains("Java")
+df"""),
+md("""## 2 · ∀ and ∃ in pandas
+
+A column of True/False values has `.all()` (∀) and `.any()` (∃)."""),
+code("""print("Q1 ∀ github            :", df.github.all())
+print("Q2 ∃ java              :", df.java.any())
+
+second = df[df.year == 2]                         # the filter A(x): restrict the domain
+print("Q3 ∀ (Y2 → Python)     :", second.python.all())
+print("   counterexample      :", list(second[~second.python].name))
+
+first = df[df.year == 1]
+print("Q4 ¬∃ (Y1 ∧ fail)      :", not (first.math < 50).any())"""),
+md("""> **Notice:** `df[df.year == 2]` *is* the golden rule. Keeping only the second-years and then asking `.all()`
+> is exactly $\\forall x\\,(Y_2(x) \\to P(x))$: the people outside the filter can never break it."""),
+md("""## 3 · The same questions in SQL
+
+Python ships with a small database engine, SQLite. We load the class into a table and ask SQL."""),
+code("""import sqlite3
+
+db = sqlite3.connect(":memory:")
+df.drop(columns=["langs"]).to_sql("students", db, index=False)
+
+def ask(query):
+    return db.execute(query).fetchone()[0]
+
+print("Q2 ∃ java:", ask("SELECT EXISTS (SELECT * FROM students WHERE java)"))"""),
+md("""SQL has **no FOR ALL**. To ask “does every second-year know Python?” a database uses De Morgan:
+$\\forall x\\,(Y_2 \\to P) \\equiv \\neg\\exists x\\,(Y_2 \\land \\neg P)$, that is, *there is no second-year who does not know Python*."""),
+code("""q3 = (
+    "SELECT NOT EXISTS ("
+    "  SELECT * FROM students"
+    "  WHERE year = 2 AND NOT python"
+    ")"
+)
+print("Q3 ∀ (Y2 → Python):", ask(q3))
+print("who breaks it:", db.execute("SELECT name FROM students WHERE year = 2 AND NOT python").fetchall())"""),
+md("""## 4 · The two classic mistakes, in data
+
+The wrong translations from the week 4 notes give silly answers on real data too."""),
+code("""wrong_and = (df.year.eq(2) & df.python).all()        # ∀x (Y2 ∧ P): "everyone is a 2nd-year who knows Python"
+wrong_imp = ((~df.year.eq(2)) | df.python).any()     # ∃x (Y2 → P): true thanks to anyone who is not a 2nd-year
+print("∀x (Y2 ∧ P) :", wrong_and)
+print("∃x (Y2 → P) :", wrong_imp)"""),
+md("""## 5 · Empty domains
+
+What is “every student in year 5 has GitHub”? There are no year-5 students."""),
+code("""fifth = df[df.year == 5]
+print("rows       :", len(fifth))
+print("∀ (.all()) :", fifth.github.all(), "  ← vacuously true: no counterexample exists")
+print("∃ (.any()) :", fifth.github.any(), " ← false: no witness exists")"""),
+md("""## 6 · Hunting for counterexamples
+
+A claim about **all** integers can never be checked by a loop, but a loop can **hunt for a counterexample**.
+The polynomial $n^2 - n + 41$ looks like it always gives a prime. Does it?"""),
+code("""def is_prime(n):
+    return n > 1 and all(n % d for d in range(2, int(n ** 0.5) + 1))
+
+n = next(n for n in range(1000) if not is_prime(n * n - n + 41))
+print(f"counterexample: n = {n},  n² - n + 41 = {n*n - n + 41} = 41 × {(n*n - n + 41)//41}")"""),
+md("""> Every value from $n = 0$ to $n = 40$ gives a prime, then $n = 41$ breaks it. Checking examples can **disprove** a ∀ statement, never prove it.
+> That is why week 7 is about proofs.
+
+## Your turn
+
+1. Ask in pandas **and** in SQL: “some first-year student knows C.”
+2. Ask “every student with a GitHub account knows at least one language.” (Hint: `df.langs != ""`.)
+3. Change one student in `STUDENTS` so that Q3 becomes true, and re-run sections 2 and 3."""),
+]
+
 NOTEBOOKS = {
     "lab01": (ROOT / "labs" / "templates" / "lab01" / "lab01.ipynb", LAB01),
     "lab02": (ROOT / "labs" / "templates" / "lab02" / "lab02.ipynb", LAB02),
+    "lab03": (ROOT / "labs" / "templates" / "lab03" / "lab03.ipynb", LAB03),
 }
 
 SKIP_TAG = "skip-execution"
