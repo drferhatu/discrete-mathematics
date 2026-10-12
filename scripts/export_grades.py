@@ -26,6 +26,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("lab")
     ap.add_argument("--points", type=float, default=10, help="maximum grade of the lab (Lab 1: 10, from Lab 2 on: 100)")
+    ap.add_argument("--source", choices=["collect_lab", "classroom50"], default="collect_lab",
+                    help="collect_lab: passed/total tests (plan B); classroom50: autograder score / maximum")
     a = ap.parse_args()
 
     roster = list(csv.DictReader((ROOT / "private" / "roster.csv").open(encoding="utf-8")))
@@ -41,11 +43,17 @@ def main():
 
     ws["A1"] = f"Discrete Mathematics (YMT211) · {ws.title} notları"
     ws["A1"].font = Font(name=FONT, bold=True, size=13)
-    ws["A2"] = (f"Kaynak: collect_lab.py ({collected}), resmi testlerle. "
-                f"Not = {a.points:g} × geçen/toplam × (1 − 0,1 × geç gün). Teslim olmayanlar 0.")
+    if a.source == "classroom50":
+        ws["A2"] = (f"Kaynak: Classroom 50 autograder (Releases), collect_classroom50.py ({collected}). Son teslimden önceki son gönderim; "
+                    f"yoksa geç gönderim. Not = {a.points:g} × puan/üzerinden × (1 − 0,1 × geç gün). Teslim olmayanlar 0.")
+    else:
+        ws["A2"] = (f"Kaynak: collect_lab.py ({collected}), resmi testlerle. "
+                    f"Not = {a.points:g} × geçen/toplam × (1 − 0,1 × geç gün). Teslim olmayanlar 0.")
     ws["A2"].font = Font(name=FONT, italic=True, size=9, color="666666")
 
-    headers = ["#", "Öğrenci No", "Ad Soyad", "GitHub", "Durum", "Geçen test", "Toplam test",
+    c50 = a.source == "classroom50"
+    headers = ["#", "Öğrenci No", "Ad Soyad", "GitHub", "Durum",
+               "Autograder puanı" if c50 else "Geçen test", "Üzerinden" if c50 else "Toplam test",
                "Geç gün", f"Not (/{a.points:g})", "Son push", "Açıklama"]
     hr = 4
     for c, h in enumerate(headers, start=1):
@@ -59,12 +67,12 @@ def main():
     for i, s in enumerate(roster):
         r = first + i
         res = results.get(s["student_id"]) or by_github.get((s.get("github_lab01") or "").lower())
-        total_tests = int(res["total"]) if res and res["total"] not in ("", "0") else 21
+        total_tests = float(res["total"]) if res and res["total"] not in ("", "0") else (100 if c50 else 21)
         if not res:
-            status, passed, late, pushed, note = "Teslim yok", 0, 0, "", "Depo oluşturulmadı / paylaşılmadı"
+            status, passed, late, pushed, note = "Teslim yok", 0, 0, "", ("Ödev kabul edilmedi" if c50 else "Depo oluşturulmadı / paylaşılmadı")
         else:
-            passed, late, pushed = int(res["passed"] or 0), int(res["late_days"] or 0), res["pushed_at"]
-            status = "Teslim edildi" if passed else "Kod push edilmedi"
+            passed, late, pushed = float(res["passed"] or 0), int(res["late_days"] or 0), res["pushed_at"]
+            status = "Teslim edildi" if pushed else ("Kabul edildi, push yok" if c50 else "Kod push edilmedi")
             note = res["note"] or ("Yalnızca README güncellenmiş" if not passed else "")
         values = [i + 1, int(s["student_id"]), f"{s['first_name']} {s['last_name']}",
                   res["github"] if res else (s.get("github_lab01") or ""), status, passed, total_tests, late]
