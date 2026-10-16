@@ -1,0 +1,208 @@
+---
+lab: 4
+week: 5
+title: "Nested Quantifiers: Checking a Social Network"
+description: "Write the four shapes of a nested statement, find witnesses and counterexamples, check a social network for celebrities and unreturned follows, negate a nested statement in code, and turn a sorting specification into a test."
+assignment: lab04
+mode: classroom50
+status: open
+duration: "75 min + finish at home"
+points: 100
+files: ["network.py"]
+topics: ["∀∃ vs ∃∀", "witnesses", "social network", "negation", "specification"]
+notebook: { file: "labs/templates/lab04/lab04.ipynb", title: "Lab 4 · Explore: rows, columns, and how rare a celebrity is" }
+---
+
+## Goal
+
+This lab turns the [week 5 notes](/weeks/week-05) into code. You will work with a small social network of eight fictional people and check statements with **two** quantifiers: does everyone follow someone, is there a celebrity whom everyone follows, is every follow returned? Along the way you will see, in your own code, why the order of $\forall$ and $\exists$ matters.
+
+All your work is in one file, `network.py`. Every task is short, and later tasks reuse earlier ones, so please work **from top to bottom**.
+
+> [!note] You can start without the instructor
+> Everything you need is on this page. Do one step, run `python check.py`, and continue when that step's checks show `:)`. If one step blocks you for more than ten minutes, write down the error message and go on to the next one.
+
+## Steps
+
+<Step n={1} title="Accept Lab 4 and open it" time="3 min" id="accept">
+
+Click the orange **Accept lab lab04** button at the top of this page and then **Accept assignment**. When the checklist finishes, click **Open repository**, and open it with the green **Code** button → **Codespaces** → **Create codespace on main**.
+
+If you prefer to work on your own computer or in another editor, that is fine as well; the section [Other ways to work and submit](#other-ways-to-work-and-submit) explains how.
+
+</Step>
+
+<Step n={2} title="Meet the network" time="5 min" id="look">
+
+Open `data.py`. The network is a dictionary that maps each person to the **set of people they follow**:
+
+```python
+FOLLOWS = {
+    "Ada":  {"Bora"},
+    "Bora": {"Ada", "Can"},
+    ...
+}
+```
+
+So `FOLLOWS["Bora"]` is `{"Ada", "Can"}`, which means that Bora follows Ada and Can. Nobody follows themselves.
+
+At the top of `network.py` you will find two small helper functions that are already written for you. `follows(net, x, y)` answers the question “does $x$ follow $y$?”, and `people(net)` gives the list of everyone in the network. You will use them in almost every task.
+
+```python
+follows(FOLLOWS, "Bora", "Can")    # True
+follows(FOLLOWS, "Can", "Bora")    # False
+people(FOLLOWS)                    # ['Ada', 'Bora', 'Can', ...]
+```
+
+Now run the checks once, before you change anything. Every check should report that it is not implemented yet.
+
+<Terminal cmd="python check.py" out={`:| forall_exists: [1,2,3] with x+y=4 → True, [1,2] → False
+    not implemented yet (still raises NotImplementedError)
+...
+0/18 checks passed`} />
+
+</Step>
+
+<Step n={3} title="The four shapes of a nested statement" time="10 min" id="shapes">
+
+Part A asks for four general functions. Each one receives a list `D` (the domain) and a **two-place predicate** `P(x, y)`, a function of two elements that returns `True` or `False`, such as `lambda x, y: x + y == 4`.
+
+From the notes, a nested statement is a loop inside a loop, and in Python it is a call of `all` or `any` inside another one. The outer function belongs to $x$, the inner one to $y$:
+
+```python
+# ∀x ∃y P(x, y): for every x (outer all), there is some y (inner any)
+all(any(P(x, y) for y in D) for x in D)
+```
+
+Write `forall_forall`, `forall_exists`, `exists_forall` and `exists_exists` in the same way, choosing `all` or `any` for each position. Before you run the checks, predict the answers to these two lines and then confirm them:
+
+```python
+forall_exists([1, 2, 3], lambda x, y: x + y == 4)   # True: 1 pairs with 3, 2 with 2, 3 with 1
+exists_forall([1, 2, 3], lambda x, y: x + y == 4)   # False: no single x makes every sum equal to 4
+```
+
+The same predicate, the same domain, opposite answers. That is the whole message of this week.
+
+</Step>
+
+<Step n={4} title="Witnesses and the first failure" time="10 min" id="witnesses">
+
+Knowing that “everyone follows someone” is true is useful, but a program usually needs to know **whom** each person follows. That is what a witness is.
+
+`witnesses(D, P)` returns a dictionary that gives every $x$ its **first** witness $y$, or `None` if $x$ has none. Python's `next` with a default is a neat tool here: `next((y for y in D if P(x, y)), None)` returns the first matching $y$, or `None` when there is none.
+
+```python
+witnesses([1, 2, 3], lambda x, y: x + y == 4)   # {1: 3, 2: 2, 3: 1}
+witnesses([1, 2], lambda x, y: x + y == 4)      # {1: None, 2: 2}
+```
+
+`first_failure(D, P)` returns the first $x$ that has **no** witness at all. That $x$ is exactly the counterexample to $\forall x\, \exists y\; P(x, y)$, and it is `None` when the statement is true.
+
+</Step>
+
+<Step n={5} title="Q1–Q3: following, celebrities and super-fans" time="15 min" id="q1-q3">
+
+Now the network. In every question, “everyone” means “everyone **else**”, because nobody follows themselves. Each function receives the network as its parameter `net`, so always work with `net`, `follows(net, …)` and `people(net)`, never with the global `FOLLOWS`.
+
+**Q1, `everyone_follows_someone`.** The statement is $\forall x\, \exists y\; (x \ne y \land F(x, y))$. You can answer it in one line with your `forall_exists`, giving it `people(net)` and the predicate `lambda x, y: x != y and follows(net, x, y)`.
+
+**Q2, `celebrity`.** The statement is $\exists y\, \forall x\; (x \ne y \to F(x, y))$, but this time the question wants the **name** of the celebrity, or `None`. Go through every candidate $y$; a candidate is a celebrity when every other person follows them, that is, when `all(x == y or follows(net, x, y) for x in P)` is true. Notice how the implication $x \ne y \to F(x, y)$ became `x == y or ...`: an implication is false only when its hypothesis holds and its conclusion fails.
+
+**Q3, `someone_follows_everyone`.** The mirror image of Q2: $\exists x\, \forall y\; (x \ne y \to F(x, y))$, a person whose own row is full.
+
+<Terminal cmd="python network.py" out={`Q1 everyone follows someone : True
+Q2 celebrity                : Ada
+...`} />
+
+Look at `data.py` and check the answers by eye. Everyone except Ada follows Ada, so Ada is the celebrity. Because a celebrity exists, Q1 had to be true as well; this is the one direction that always works.
+
+</Step>
+
+<Step n={6} title="Q4–Q6: mutual follows and loners" time="15 min" id="q4-q6">
+
+**Q5, `first_unreturned`** (do this one before Q4). Find the first pair $(x, y)$ where $x$ follows $y$ but $y$ does not follow $x$ back. Use two `for` loops over `people(net)`, the outer one for $x$ and the inner one for $y$, and return the tuple `(x, y)` as soon as you find such a pair. If the loops finish, return `None`.
+
+**Q4, `all_mutual`.** The statement $\forall x\, \forall y\; (F(x, y) \to F(y, x))$ is true exactly when Q5 finds no counterexample. That makes this a one-line function.
+
+**Q6, `loners`.** A loner follows nobody and is followed by nobody: for every $y$, neither $F(x, y)$ nor $F(y, x)$. Return the names of all loners as a list, in the order of `people(net)`. A list comprehension with an `all(...)` inside it does the job.
+
+<Terminal cmd="python network.py" out={`Q4 all follows mutual       : False
+Q5 first unreturned follow  : ('Bora', 'Can')
+Q6 loners                   : []`} />
+
+</Step>
+
+<Step n={7} title="Negating a nested statement" time="8 min" id="negation">
+
+From the notes, a negation moves inwards and flips every quantifier it passes:
+
+$$
+\neg\, \forall x\, \exists y\; P(x, y) \;\equiv\; \exists x\, \forall y\; \neg P(x, y)
+$$
+
+Write `not_forall_exists(D, P)` as the **right-hand side**: call your `exists_forall` with a new predicate that returns the opposite of `P`, that is, `lambda x, y: not P(x, y)`.
+
+The checks compare your answer with the real negation on 60 random cases, and they also read your code. If you write `not forall_exists(D, P)`, the value is correct but the rule is skipped, so that check will not pass.
+
+</Step>
+
+<Step n={8} title="A specification for sorting" time="10 min" id="spec">
+
+The last part puts the specification from the notes into code.
+
+`is_sorted(b)` checks $\forall i\; (b[i] \le b[i+1])$ for every position $i$ that has a next element. `keeps_values(a, b)` checks $\forall i\, \exists j\; (a[i] = b[j])$, which is a nested statement like the ones in Part A.
+
+`is_correct_sort(a, b)` is the complete specification: $b$ must be sorted **and** every value must occur the same number of times in $a$ and in $b$. The notes showed why `keeps_values` alone is not enough, and the checks include exactly that trap:
+
+```python
+is_correct_sort([3, 3, 1], [1, 3, 3])   # True
+is_correct_sort([3, 3, 1], [1, 3, 5])   # False: a 3 was lost and a 5 appeared from nowhere
+```
+
+`list.count(v)` tells you how many times `v` occurs in a list. Compare the counts for every value that appears in either list.
+
+</Step>
+
+<Step n={9} title="Submit" time="1 min" id="submit">
+
+When `python check.py` reports `18/18 checks passed`, or when you have done as much as you can, push your work. **Every push is graded out of 100.**
+
+<Terminal lines={['git add -A', 'git commit -m "Lab 4"', 'git push']} />
+
+About two minutes later your score appears under **Releases** on your repository page. Your last push before **Friday 23:59** is the one that counts.
+
+</Step>
+
+## Other ways to work and submit
+
+You do not have to use Codespaces or a terminal.
+
+**Work anywhere:** on your own computer (download the repository with **Code → Download ZIP**, then run `pip install pytest` and `python check.py`), on [cs50.dev](https://cs50.dev), in Google Colab, or in [github.dev](https://github.dev) by pressing <span class="kbd">.</span> on your repository page.
+
+**Submit from the browser:** open `network.py` in your repository on github.com, click the pencil icon ✎, select everything and paste your **whole** file, then click **Commit changes**. Alternatively, use **Add file → Upload files** and drag your `network.py` in. Keep the file name exactly `network.py` and leave `data.py` unchanged. Every commit is graded in the same way as a push.
+
+## Explore: the notebook
+
+The notebook draws the network so that you can see the celebrity, shows the follow relation as a grid of rows and columns, and runs an experiment on thousands of random networks: “everyone follows someone” becomes true very quickly as people follow more, while a celebrity remains rare until almost everyone follows almost everyone. It also measures how the cost of a nested check grows with the size of the network.
+
+<NotebookEmbed file="labs/templates/lab04/lab04.ipynb" title="Lab 4 · Explore notebook" />
+
+## Challenges (optional, not graded)
+
+1. **Followers count.** Write `most_followed(net)`, which returns the person with the most followers. Is a celebrity always the most followed person? Is the most followed person always a celebrity?
+2. **Two-step reach.** Write `everyone_reaches(net, x)`, which checks $\forall y\; (x \ne y \to (F(x, y) \lor \exists z\, (F(x, z) \land F(z, y))))$: everyone else is followed by $x$ directly or by someone $x$ follows.
+3. **Order matters, by search.** Find a two-place predicate and a domain of three numbers for which $\forall x\, \exists y$ is true and $\exists y\, \forall x$ is false, and test them with your Part A functions.
+
+## Troubleshooting
+
+> [!note] My answers are right for `data.py`, but “other networks” fails
+> Use the parameter `net` everywhere inside the Q functions, together with `follows(net, …)` and `people(net)`. The global `FOLLOWS` is only the default value of `net`.
+
+> [!note] Q2 returns True instead of a name
+> The question asks **who** the celebrity is. Return the name `y` as soon as you find one, and `None` after the loop.
+
+> [!note] Q2 never finds Ada, although everyone follows her
+> Check how you handle the person themselves. Ada does not follow Ada, so the condition for each $x$ must be “$x$ is Ada, **or** $x$ follows Ada”, that is, `x == y or follows(net, x, y)`.
+
+> [!note] Q5 returns the right people in the wrong order
+> The pair must be `(follower, followed)`: in `("Bora", "Can")`, Bora follows Can and Can does not follow back. Keep $x$ in the outer loop and $y$ in the inner loop.

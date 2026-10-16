@@ -327,10 +327,121 @@ md("""> Every value from $n = 0$ to $n = 40$ gives a prime, then $n = 41$ breaks
 3. Change one student in `STUDENTS` so that Q3 becomes true, and re-run sections 2 and 3."""),
 ]
 
+# ---------------------------------------------------------------------------
+# LAB 4 · Nested quantifiers on a network
+# ---------------------------------------------------------------------------
+LAB04 = [
+md("""# Lab 4 · Explore: rows, columns, and how rare a celebrity is
+
+**Discrete Mathematics (YMT211)** · Fall 2026
+
+The playground half of Lab 4. Nothing here is graded. You will draw the network from `data.py`, look at the follow
+relation as a grid of rows and columns, and run an experiment that shows how differently $\\forall x\\, \\exists y$ and
+$\\exists y\\, \\forall x$ behave."""),
+md("""## 1 · Draw the network
+
+The same eight fictional people as in `data.py`. An arrow from $x$ to $y$ means “$x$ follows $y$”."""),
+code("""import networkx as nx
+import matplotlib.pyplot as plt
+
+FOLLOWS = {
+    "Ada": {"Bora"}, "Bora": {"Ada", "Can"}, "Can": {"Ada"}, "Defne": {"Ada", "Emir"},
+    "Emir": {"Ada", "Defne"}, "Funda": {"Ada", "Gökay"}, "Gökay": {"Ada"}, "Hira": {"Ada"},
+}
+G = nx.DiGraph((x, y) for x, ys in FOLLOWS.items() for y in ys)
+
+fig, ax = plt.subplots(figsize=(6, 4.5))
+pos = nx.spring_layout(G, seed=3)
+nx.draw_networkx(G, pos, ax=ax, node_color="#e8e8fc", edgecolors="#3a39d0", node_size=1100,
+                 font_size=9, arrowsize=14, edge_color="#6c6e7f")
+ax.set_axis_off(); plt.tight_layout(); plt.show()"""),
+md("""Can you see the celebrity? Every arrow seems to point at one person."""),
+md("""## 2 · The same relation as a grid
+
+Row $x$, column $y$, and a dark cell when $x$ follows $y$. This is the picture from the week 5 page:
+$\\forall x\\, \\exists y$ asks whether **every row** has a dark cell, $\\exists y\\, \\forall x$ whether **some column** is dark everywhere
+(off the diagonal)."""),
+code("""import numpy as np
+
+names = list(FOLLOWS)
+M = np.array([[1 if y in FOLLOWS[x] else 0 for y in names] for x in names])
+
+fig, ax = plt.subplots(figsize=(5.5, 5))
+ax.imshow(M, cmap="Blues", vmin=0, vmax=1.4)
+ax.set_xticks(range(len(names)), names, rotation=45); ax.set_yticks(range(len(names)), names)
+ax.set_xlabel("y  (is followed)"); ax.set_ylabel("x  (follows)")
+for i in range(len(names)):
+    for j in range(len(names)):
+        ax.text(j, i, M[i, j], ha="center", va="center", fontsize=9, color="#15161d")
+plt.tight_layout(); plt.show()
+
+off = ~np.eye(len(names), dtype=bool)
+print("∀x ∃y : every row has a 1     →", bool((M * off).any(axis=1).all()))
+print("∃y ∀x : some column is full   →", bool(((M == 1) | ~off).all(axis=0).any()))"""),
+md("""## 3 · An experiment: how often is each statement true?
+
+Make random networks of 12 people where each possible follow exists with probability $p$.
+For each $p$, count how often “everyone follows someone” ($\\forall x \\exists y$) and “there is a celebrity”
+($\\exists y \\forall x$) are true."""),
+code("""import random
+
+def random_net(n, p, rng):
+    return [[i != j and rng.random() < p for j in range(n)] for i in range(n)]
+
+def forall_exists(F):
+    return all(any(row) for row in F)
+
+def exists_forall(F):
+    n = len(F)
+    return any(all(F[x][y] for x in range(n) if x != y) for y in range(n))
+
+rng = random.Random(1)
+ps = [i / 20 for i in range(1, 20)]
+fe, ef = [], []
+for p in ps:
+    nets = [random_net(12, p, rng) for _ in range(400)]
+    fe.append(sum(forall_exists(F) for F in nets) / 400)
+    ef.append(sum(exists_forall(F) for F in nets) / 400)
+
+fig, ax = plt.subplots(figsize=(7, 3.6))
+ax.plot(ps, fe, "o-", color="#3a39d0", label="∀x ∃y  everyone follows someone")
+ax.plot(ps, ef, "s-", color="#e8560f", label="∃y ∀x  there is a celebrity")
+ax.set_xlabel("probability p that a given person follows another"); ax.set_ylabel("fraction of networks")
+ax.legend(); ax.grid(alpha=.3); plt.tight_layout(); plt.show()"""),
+md("""> The blue curve shoots up early: with even a modest number of follows, almost every network satisfies
+> $\\forall x\\, \\exists y$. The orange curve stays near zero until $p$ is very large, because a celebrity needs
+> **eleven** specific follows to all happen at once. This is the strong-versus-weak difference from the notes,
+> measured. Notice also that orange is never above blue: $\\exists y\\, \\forall x$ always implies $\\forall x\\, \\exists y$."""),
+md("""## 4 · Nested loops cost $n^2$
+
+Checking a nested statement may look at every pair. Let's time `all(any(...))` on growing networks where the
+answer is False only at the very end, so the loops cannot stop early."""),
+code("""import time
+
+sizes, secs = [], []
+for n in [200, 400, 800, 1600]:
+    F = [[False] * n for _ in range(n)]
+    for x in range(n - 1):
+        F[x][n - 1] = True          # everyone follows the last person, except the last person
+    t0 = time.perf_counter()
+    forall_exists(F)                 # False, but only discovered at the last row
+    sizes.append(n); secs.append(time.perf_counter() - t0)
+
+for n, s in zip(sizes, secs):
+    print(f"n = {n:>5}: {s * 1000:7.1f} ms")
+print("double n → roughly four times the work")"""),
+md("""## Your turn
+
+1. In section 1, remove Hira's follow of Ada (`"Hira": set()`). Which of Q1–Q6 change? Re-run sections 1 and 2 to see it.
+2. In section 3, change 12 people to 6. Does the orange curve rise earlier? Explain why in one sentence.
+3. Write `exists_forall` for the statement “someone follows everyone” and add it to the plot."""),
+]
+
 NOTEBOOKS = {
     "lab01": (ROOT / "labs" / "templates" / "lab01" / "lab01.ipynb", LAB01),
     "lab02": (ROOT / "labs" / "templates" / "lab02" / "lab02.ipynb", LAB02),
     "lab03": (ROOT / "labs" / "templates" / "lab03" / "lab03.ipynb", LAB03),
+    "lab04": (ROOT / "labs" / "templates" / "lab04" / "lab04.ipynb", LAB04),
 }
 
 SKIP_TAG = "skip-execution"
