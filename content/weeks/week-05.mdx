@@ -1,0 +1,350 @@
+---
+week: 5
+title: "Nested Quantifiers and Specifications"
+description: "Statements with two quantifiers, why their order changes everything, how to negate them step by step, and how engineers use them to write precise specifications."
+module: m2
+status: ready
+reading: "Rosen 1.5"
+lab: lab-04
+objectives:
+  - "Read a statement with two quantifiers aloud and explain what it claims."
+  - "Explain why ∀x∃y and ∃y∀x mean different things, and show it with a counterexample."
+  - "Decide the truth value of nested statements over small and familiar domains."
+  - "Translate English and mathematical sentences with two quantifiers into logic, and back."
+  - "Negate a nested statement one quantifier at a time, and state the result in plain English."
+  - "Write a precise specification for a small program with quantifiers, and check it in Python."
+wow:
+  title: "“Everyone follows someone” is not “someone is followed by everyone”."
+  text: "∀x ∃y F(x, y) and ∃y ∀x F(x, y) use the same two symbols in a different order. The first describes almost any social network; the second claims there is a celebrity whom literally everyone follows. In the grid on this page you will see the difference as rows versus columns, and in the lab you will find out which one holds in a real network."
+industry:
+  - {"t": "Formal specifications", "d": "Engineers at Amazon Web Services and Microsoft write specifications in TLA+, a language built on nested quantifiers, to find design bugs before any code exists."}
+  - {"t": "Program correctness", "d": "“The output is sorted” is ∀i (a[i] ≤ a[i+1]), and “nothing was lost” is ∀v ∃j (b[j] = v). Test frameworks and code reviewers check exactly these statements."}
+  - {"t": "Calculus and numerical code", "d": "The ε–δ definition of a limit is ∀ε ∃δ ∀x. Every convergence test in numerical software is an attempt to check a statement of this shape."}
+  - {"t": "Distributed systems", "d": "“For every request there is a server that answers it” and “there is a server that answers every request” are different guarantees, and only one of them survives the loss of a single machine."}
+slides:
+  - {"title": "Slides: predicate logic practice", "file": "dm-2026-w05-predicate-practice.pdf"}
+resources:
+  - {"title": "Stanford CS103 Mathematical Foundations of Computing", "url": "https://web.stanford.edu/class/cs103/", "note": "first-order logic, with very good nested-quantifier practice"}
+  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapter 3.6, predicate formulas"}
+  - {"title": "forall x: Calgary, an open logic textbook", "url": "https://forallx.openlogicproject.org/", "note": "multiple generality: sentences with several quantifiers"}
+  - {"title": "Leslie Lamport: TLA+", "url": "https://lamport.azurewebsites.net/tla/tla.html", "note": "how industry writes specifications"}
+tags: ["nested quantifiers", "order of quantifiers", "negation", "specification", "precondition", "postcondition", "ε–δ", "TLA+", "all", "any"]
+---
+
+import NestedGrid from '@/components/NestedGrid.astro';
+
+## From one quantifier to two
+
+Last week every statement had a single quantifier: “every student has taken Java”, “some server is overloaded”. That was enough to talk about **properties** of individual things. But many of the most interesting statements in computing are about **relationships** between things, and a relationship has two sides.
+
+Think about a social network. “Everyone follows someone” talks about two people at once: the follower and the one being followed. So does “every user has a password”, “every request is answered by some server”, and “for every number there is a bigger one”. To write any of these we need a predicate with two variables, and a quantifier for each of them. When one quantifier sits inside the scope of another, we call them **nested quantifiers**.
+
+> [!definition] Nested quantifiers
+> A statement has **nested quantifiers** when one quantifier appears inside the scope of another, as in $\forall x\, \exists y\; P(x, y)$. It is read from left to right: “for every $x$, there exists a $y$ such that $P(x, y)$.”
+
+Nothing new is needed to understand them. A nested statement is simply a quantified statement whose body is itself a quantified statement. You can always read it in two steps. In $\forall x\, \exists y\; P(x, y)$, first fix one particular $x$; the part $\exists y\; P(x, y)$ is then an ordinary week 4 statement about that one $x$. The outer $\forall x$ asks whether this inner statement holds for **every** choice of $x$.
+
+## Nested quantifiers are nested loops
+
+If you have written a loop inside a loop, you already know how to evaluate a nested statement over a finite domain. Here is “everyone follows someone”, with $F(x, y)$ meaning “$x$ follows $y$”:
+
+```python
+def everyone_follows_someone(people, F):
+    for x in people:                 # ∀x : check every person ...
+        found = False
+        for y in people:             #   ∃y : ... has at least one y
+            if F(x, y):
+                found = True
+                break                #   witness found for this x, move on
+        if not found:
+            return False             # this x is a counterexample
+    return True
+```
+
+The outer loop is the $\forall$, the inner loop is the $\exists$. In Python the same thing fits on one line, and reading the line from the outside in gives exactly the logic:
+
+```python
+all(any(F(x, y) for y in people) for x in people)     # ∀x ∃y F(x, y)
+```
+
+Notice that the inner loop runs once for **each** $x$. Over a domain of $n$ people, a nested statement may look at up to $n \times n$ pairs. That is why checking such statements on large data is expensive, a theme we return to when we study algorithms.
+
+## Two quantifiers of the same kind
+
+When both quantifiers are the same, their order does not matter. “For every $x$ and every $y$” covers every pair no matter which variable you pick first, just as a double loop visits every cell of a table whether you go row by row or column by column. The same is true for two existentials: “there is an $x$ and there is a $y$” only asks for one suitable pair.
+
+$$
+\forall x\, \forall y\; P(x, y) \;\equiv\; \forall y\, \forall x\; P(x, y) \qquad\qquad \exists x\, \exists y\; P(x, y) \;\equiv\; \exists y\, \exists x\; P(x, y)
+$$
+
+For example, over the real numbers, $\forall x\, \forall y\; (x + y = y + x)$ states that addition is commutative, and it is true. The statement $\exists x\, \exists y\; (x + y = 10 \land x - y = 4)$ asks whether the system of two equations has a solution, and it does: $x = 7$, $y = 3$.
+
+## When the order matters
+
+The real subtlety begins when the quantifiers are **mixed**. Compare these two statements, where the domain is all integers:
+
+$$
+\forall x\, \exists y\; (x + y = 10) \qquad\text{and}\qquad \exists y\, \forall x\; (x + y = 10)
+$$
+
+The first one says: whatever integer $x$ you give me, I can find a $y$ that brings the sum to 10. That is true, because I simply choose $y = 10 - x$. The important detail is that my choice of $y$ **depends on** your $x$: for $x = 3$ I answer 7, for $x = 12$ I answer $-2$.
+
+The second one says something much stronger: there is a **single** integer $y$ that works for every $x$ at the same time. There is no such number. If $y$ makes $1 + y = 10$, then $y = 9$, and $2 + 9 \ne 10$. The second statement is false.
+
+> [!tip] Think of it as a game
+> A nested statement is a game between you and an opponent. You play the $\exists$ moves and try to make the statement true; your opponent plays the $\forall$ moves and tries to make it false. The players move **in the order the quantifiers are written**.
+>
+> In $\forall x\, \exists y$ your opponent picks $x$ first, and you answer with a $y$ after seeing it. In $\exists y\, \forall x$ you must commit to $y$ first, and your opponent then picks any $x$ to beat you. Moving second is a big advantage, and that is exactly why $\forall x\, \exists y$ is so much easier to make true.
+
+### Seeing it in a network
+
+The grid below shows a small network of five people. A 1 in row $x$ and column $y$ means “$x$ follows $y$”. Choose a statement, read the explanation, and click cells to change who follows whom. The most useful exercise is to compare the first two buttons.
+
+<NestedGrid id="ng-week5" />
+
+The grid turns the abstract difference into a picture. **$\forall x\, \exists y\; F(x, y)$** says that every **row** contains at least one 1: each person follows somebody, and each row may find its 1 in a different place. **$\exists y\, \forall x\; F(x, y)$** says that some **column** is completely filled: one person, the same for everyone, is followed by all the others. In the starting network, every row has a 1 but no column is full, so the first statement is true and the second is false. If you make everyone follow Ada, Ada's column fills up and the second statement becomes true as well.
+
+The checkbox matters too. With “ignore $x = y$” turned off, the diagonal counts, and a celebrity would also have to follow **themselves** to fill their column. This is why careful translations often say “everyone **else**” and add the condition $x \ne y$, as you will see below.
+
+### One direction always works
+
+The two statements are not equivalent, but they are not unrelated either. If there is a celebrity whom everyone follows, then certainly everyone follows someone, because they all follow the celebrity. In symbols:
+
+$$
+\exists y\, \forall x\; P(x, y) \;\to\; \forall x\, \exists y\; P(x, y) \quad\text{is always true,}
+$$
+
+while the converse fails, as the integer example and the network both show. A useful way to remember it: $\exists\forall$ is the strong, rare statement, and $\forall\exists$ is the weak, common one.
+
+### The four mixed and pure forms at a glance
+
+For a predicate $P(x, y)$ of two variables, here is when each pattern is true and when it is false. It is worth reading slowly, one line at a time.
+
+| Statement | It is true when | It is false when |
+|---|---|---|
+| $\forall x\, \forall y\; P(x, y)$ | $P(x, y)$ holds for every pair | there is a pair with $P(x, y)$ false |
+| $\forall x\, \exists y\; P(x, y)$ | for every $x$ there is some $y$ (which may depend on $x$) with $P(x, y)$ | there is an $x$ for which $P(x, y)$ is false for every $y$ |
+| $\exists x\, \forall y\; P(x, y)$ | there is one $x$ for which $P(x, y)$ holds for every $y$ | for every $x$ there is some $y$ with $P(x, y)$ false |
+| $\exists x\, \exists y\; P(x, y)$ | there is at least one pair with $P(x, y)$ true | $P(x, y)$ is false for every pair |
+
+## Statements from mathematics
+
+Much of mathematics is written with nested quantifiers, often hidden behind ordinary words. Uncovering them is a good exercise in careful reading.
+
+**“The sum of two positive integers is always positive.”** Two arbitrary integers are involved, and “always” means for all of them. With the domain of all integers:
+
+$$
+\forall x\, \forall y\; \big( (x > 0 \land y > 0) \to x + y > 0 \big)
+$$
+
+**“Every real number except zero has a multiplicative inverse.”** For each nonzero $x$ we need some $y$ with $xy = 1$, and the $y$ clearly depends on $x$ (for 4 it is 0.25, for $-2$ it is $-0.5$):
+
+$$
+\forall x\, \big( x \ne 0 \to \exists y\; (xy = 1) \big)
+$$
+
+This is true over the real numbers and false over the integers, where 2 has no integer inverse. Once again, the domain decides.
+
+**“There is no largest integer.”** Saying that a largest integer exists would be $\exists y\, \forall x\; (x \le y)$. Its negation, as we will learn below, is $\forall y\, \exists x\; (x > y)$: whatever integer you name, there is a bigger one.
+
+> [!example] The definition of a limit, the most famous nested statement
+> In calculus, $\lim_{x \to a} f(x) = L$ is defined as
+> $$
+> \forall \varepsilon > 0\;\, \exists \delta > 0\;\, \forall x\; \big( 0 < |x - a| < \delta \to |f(x) - L| < \varepsilon \big).
+> $$
+> Read it as the game from above. Your opponent names a tolerance $\varepsilon$, however tiny. You answer with a distance $\delta$. Then your opponent may pick any $x$ within distance $\delta$ of $a$, and you win if $f(x)$ lies within $\varepsilon$ of $L$. The limit exists exactly when you have a winning answer to every challenge. Three nested quantifiers, and a whole branch of mathematics rests on getting their order right.
+
+## Translating English into logic
+
+Translation with two quantifiers follows the same recipe as last week, with one extra habit: **give each “thing” in the sentence its own variable**, and decide for each variable whether the sentence means every one of them or some of them. Then the golden rule from week 4 applies to each quantifier separately: $\forall$ goes with $\to$, and $\exists$ goes with $\land$.
+
+Let us work through several examples. In the first group the domain is all users of a messaging system, and $M(x, y)$ means “$x$ has sent a message to $y$”.
+
+*“Every user has sent a message to at least one other user.”* “Every user” is the outer $\forall x$, “at least one other user” is an inner $\exists y$, and “other” means $y$ is not $x$ itself:
+
+$$
+\forall x\, \exists y\; \big( x \ne y \land M(x, y) \big)
+$$
+
+*“There is a user who has sent messages to all other users.”* Now the outer quantifier is $\exists x$, and “all other users” is a $\forall y$ restricted to $y \ne x$, so it takes an implication:
+
+$$
+\exists x\, \forall y\; \big( x \ne y \to M(x, y) \big)
+$$
+
+*“There are two users who have sent messages to each other.”*
+
+$$
+\exists x\, \exists y\; \big( x \ne y \land M(x, y) \land M(y, x) \big)
+$$
+
+*“Some user has never received a message.”* The user who receives is $y$, and “never” means from nobody:
+
+$$
+\exists y\, \forall x\; \neg M(x, y)
+$$
+
+The next examples use other domains. Read each sentence, decide on the variables, and only then look at the formula.
+
+*“Every student either has a computer or has a friend who has one.”* With the domain all students in the school, $C(x)$: $x$ has a computer, and $F(x, y)$: $x$ and $y$ are friends:
+
+$$
+\forall x\, \Big( C(x) \lor \exists y\, \big( C(y) \land F(x, y) \big) \Big)
+$$
+
+*“There is a woman who has taken a flight on every airline in the world.”* Three kinds of things appear: women, flights and airlines. Let $P(w, f)$ mean that $w$ has taken flight $f$, and $Q(f, a)$ that flight $f$ belongs to airline $a$. The sentence names one woman, every airline, and for each airline some flight:
+
+$$
+\exists w\, \forall a\, \exists f\; \big( P(w, f) \land Q(f, a) \big)
+$$
+
+The flight is chosen after the airline, because it must be a flight **of that airline**. If you moved $\exists f$ to the front, you would claim that a single flight belongs to every airline, which is nonsense.
+
+> [!warning] The order of the words is not always the order of the quantifiers
+> English likes to put the most important noun first, and logic does not care. “Someone is loved by everyone” and “everyone loves someone” both start with a different word than their formula does. Always ask: **does the choice of one thing depend on the other?** If the $y$ may change when $x$ changes, then $\forall x$ comes first and $\exists y$ second. If one single $y$ must serve every $x$, then $\exists y$ comes first.
+
+### From logic back to English
+
+Reading formulas aloud is just as important as writing them, and the goal is a sentence a person would actually say. Take $L(x, y)$: “$x$ loves $y$”, with the domain all people.
+
+$\forall x\, \exists y\; L(x, y)$ says, word by word, “for every person $x$ there is a person $y$ such that $x$ loves $y$”, which is simply **“everybody loves somebody.”** The somebody may be different for each person.
+
+$\exists y\, \forall x\; L(x, y)$ says “there is a person $y$ such that every person $x$ loves $y$”, that is, **“there is someone whom everybody loves.”** This is a much bolder claim, and the earlier result tells us it implies the first one.
+
+$\forall x\, \forall y\; \big( L(x, y) \to L(y, x) \big)$ says that love is always returned: **“if one person loves another, the other loves them back.”** Unfortunately, a single counterexample from real life is enough to make it false.
+
+## Negating nested statements
+
+To negate a nested statement, we use De Morgan's laws for quantifiers from last week, **one quantifier at a time**, moving the negation from the outside inwards. Each time the negation passes a quantifier, that quantifier flips: $\forall$ becomes $\exists$ and $\exists$ becomes $\forall$. When the negation finally reaches the body, we simplify it with the laws from week 3.
+
+> [!example] Negate “everyone follows someone”
+> $$
+> \begin{aligned}
+> \neg\, \forall x\, \exists y\; F(x, y) &\equiv \exists x\; \neg \exists y\; F(x, y) && \text{De Morgan for } \forall\\
+> &\equiv \exists x\, \forall y\; \neg F(x, y) && \text{De Morgan for } \exists
+> \end{aligned}
+> $$
+> In English: **“someone follows nobody.”** That is exactly what we would expect: to break “everyone follows someone”, you only need one person with an empty row.
+
+> [!example] Negate “every program has a bug”
+> Let the domain be all things, $P(x)$: $x$ is a program, and $B(x, y)$: $y$ is a bug in $x$. The statement is $\forall x\, \big( P(x) \to \exists y\; B(x, y) \big)$.
+> $$
+> \begin{aligned}
+> \neg\, \forall x\, \big( P(x) \to \exists y\; B(x, y) \big) &\equiv \exists x\; \neg \big( P(x) \to \exists y\; B(x, y) \big) && \text{De Morgan for } \forall\\
+> &\equiv \exists x\, \big( P(x) \land \neg \exists y\; B(x, y) \big) && \neg(p \to q) \equiv p \land \neg q\\
+> &\equiv \exists x\, \big( P(x) \land \forall y\; \neg B(x, y) \big) && \text{De Morgan for } \exists
+> \end{aligned}
+> $$
+> In English: **“there is a program with no bugs at all.”** Every programmer suspects the original statement is true, which is the same as suspecting that this negation is false.
+
+> [!example] Negate “there is no largest integer”
+> We start from the claim that a largest integer exists, $\exists y\, \forall x\; (x \le y)$, and negate it:
+> $$
+> \neg\, \exists y\, \forall x\; (x \le y) \;\equiv\; \forall y\; \neg \forall x\; (x \le y) \;\equiv\; \forall y\, \exists x\; \neg(x \le y) \;\equiv\; \forall y\, \exists x\; (x > y).
+> $$
+> In English: **“for every integer there is a larger one.”** This is the true statement, and it is why no largest integer exists.
+
+The same procedure handles longer statements. Here are two from the practice slides, worked one step at a time. Try each one yourself before reading the solution.
+
+<details>
+<summary>Negate $\forall x\, \exists y\; \big( P(x) \to Q(x, y) \big)$</summary>
+
+$$
+\begin{aligned}
+\neg\, \forall x\, \exists y\; \big( P(x) \to Q(x, y) \big) &\equiv \exists x\; \neg \exists y\; \big( P(x) \to Q(x, y) \big)\\
+&\equiv \exists x\, \forall y\; \neg \big( P(x) \to Q(x, y) \big)\\
+&\equiv \exists x\, \forall y\; \big( P(x) \land \neg Q(x, y) \big)
+\end{aligned}
+$$
+</details>
+
+<details>
+<summary>Negate $\exists x\, \forall y\; \big( R(x) \land S(y) \big)$</summary>
+
+$$
+\begin{aligned}
+\neg\, \exists x\, \forall y\; \big( R(x) \land S(y) \big) &\equiv \forall x\; \neg \forall y\; \big( R(x) \land S(y) \big)\\
+&\equiv \forall x\, \exists y\; \neg \big( R(x) \land S(y) \big)\\
+&\equiv \forall x\, \exists y\; \big( \neg R(x) \lor \neg S(y) \big)
+\end{aligned}
+$$
+</details>
+
+> [!warning] Flip every quantifier the negation passes
+> The most common mistake is to flip only the first quantifier: writing $\neg\, \forall x\, \exists y\; P(x, y)$ as $\exists x\, \exists y\; \neg P(x, y)$. That says “someone fails to follow some person”, which is almost always true and is **not** the negation. The negation must travel all the way to the body, and every quantifier it passes changes kind.
+
+## Specifications: saying exactly what a program must do
+
+Engineers use nested quantifiers every day, usually without calling them that, whenever they write down **what a program is supposed to do**. Such a description is called a **specification**. It usually has two parts: a **precondition**, which says what the program may assume about its input, and a **postcondition**, which says what must be true about its output when it finishes.
+
+Take a function that sorts a list $a$ of length $n$ and returns a list $b$. What does “sorted correctly” actually mean? It means two things, and both need quantifiers.
+
+The output must be in order. Every element is at most the next one:
+
+$$
+\forall i\; \big( 0 \le i < n - 1 \to b[i] \le b[i+1] \big)
+$$
+
+And the output must contain the same elements as the input, nothing lost and nothing invented. A first attempt is to say that every value of $a$ appears somewhere in $b$:
+
+$$
+\forall i\, \exists j\; \big( a[i] = b[j] \big)
+$$
+
+This is a good start, but it is not quite enough. If $a = [3, 3, 1]$, the list $b = [1, 3, 5]$ is in order and contains every value of $a$, yet it is clearly wrong: one 3 is missing and a 5 appeared from nowhere. A complete specification must also say that each value occurs **the same number of times** in both lists. Finding such gaps is exactly the point of writing specifications precisely: a vague “the output is the sorted input” hides the question, while the formula forces you to face it.
+
+The same ideas translate directly into tests:
+
+```python
+def is_sorted(b):
+    return all(b[i] <= b[i + 1] for i in range(len(b) - 1))                      # ∀i
+
+def keeps_values(a, b):
+    return all(any(a[i] == b[j] for j in range(len(b))) for i in range(len(a)))  # ∀i ∃j
+
+def keeps_counts(a, b):
+    return all(a.count(v) == b.count(v) for v in set(a) | set(b))                # ∀v
+```
+
+Many guarantees of real systems have the same shape. Here are a few, written with the obvious predicates.
+
+| Guarantee | Logic |
+|---|---|
+| Every request receives a response. | $\forall r\, \exists s\; \mathit{Responds}(s, r)$ |
+| No two users share an ID. | $\forall x\, \forall y\; \big( x \ne y \to \mathit{id}(x) \ne \mathit{id}(y) \big)$ |
+| Some backup server can take over any request. | $\exists s\, \forall r\; \mathit{CanServe}(s, r)$ |
+| Every user who is an admin can read every table. | $\forall u\, \big( A(u) \to \forall t\; \mathit{Read}(u, t) \big)$ |
+
+> [!industry] Why the order of quantifiers is an engineering decision
+> Look again at the first and third lines of the table. “Every request receives a response” lets each request be served by a different server. “Some backup server can take over any request” demands one server that can handle everything. Systems are often designed around the first guarantee, while operations teams sometimes assume the second. When the one special server fails, the difference between $\forall\exists$ and $\exists\forall$ becomes an outage. Writing the guarantee in logic makes the assumption visible before it costs anything.
+
+## Summary
+
+A statement with nested quantifiers is read from the left, and each quantifier covers everything to its right. Two quantifiers of the same kind can be swapped freely, but a mixed pair cannot: $\forall x\, \exists y$ lets the choice of $y$ depend on $x$, while $\exists y\, \forall x$ demands one $y$ that works for every $x$. The second always implies the first, never the other way round. To decide which order a sentence needs, ask whether one choice depends on the other.
+
+Over finite data, nested quantifiers are nested loops, and in Python they become nested calls to `all` and `any`. To negate a nested statement, move the negation inwards one quantifier at a time, flipping each quantifier it passes, and then simplify the body with the laws of logic. Finally, specifications are nested-quantifier statements about programs, and writing them precisely is one of the most practical skills this course offers.
+
+## Practice
+
+> [!try] Exercises
+> 1. Over the integers, translate “for every integer there is a larger integer”. Is it true? Now swap the quantifiers, read the result in English, and decide whether it is true.
+> 2. Over the integers, is $\exists x\, \forall y\; (x \le y)$ true? What if the domain is the natural numbers $\{0, 1, 2, \dots\}$?
+> 3. Over the real numbers, decide whether $\forall x\, \exists y\; (xy = 1)$ is true. Write its negation and use it to explain your answer.
+> 4. With $M(x, y)$: “$x$ has sent a message to $y$”, translate “nobody has sent a message to everyone else”.
+> 5. Write the specification “every element of list `a` appears in list `b`” in logic and as one line of Python.
+> 6. Say this in plain English, with $F(x, y)$: “$x$ follows $y$” and $R(x, y)$: “$x$ and $y$ are friends”: $\forall x\, \forall y\; \big( (F(x, y) \land F(y, x)) \to R(x, y) \big)$.
+
+<details>
+<summary>Answers</summary>
+
+1. $\forall x\, \exists y\; (y > x)$, which is true: for any $x$, take $y = x + 1$. Swapping gives $\exists y\, \forall x\; (y > x)$, “there is an integer larger than every integer”. It is false, because no integer is larger than itself (or than itself plus one).
+2. Over the integers it is false: it claims there is a smallest integer, but for any $x$ the number $x - 1$ is smaller. Over the natural numbers it is true, with the witness $x = 0$.
+3. It is false. The negation is $\exists x\, \forall y\; (xy \ne 1)$, and $x = 0$ is a witness: $0 \cdot y = 0 \ne 1$ for every $y$. Zero has no inverse.
+4. $\neg \exists x\, \forall y\; \big( x \ne y \to M(x, y) \big)$, which is equivalent to $\forall x\, \exists y\; \big( x \ne y \land \neg M(x, y) \big)$: “everyone has at least one other person they have not written to.”
+5. $\forall i\, \exists j\; (a[i] = b[j])$, and in Python `all(any(a[i] == b[j] for j in range(len(b))) for i in range(len(a)))`, or more simply `all(v in b for v in a)`.
+6. “Whenever two people follow each other, they are friends.”
+</details>
+
+## Before the lab
+
+In [Lab 4](/labs/lab-04) you will check nested-quantifier statements on a small social network: whether everyone follows someone, whether there is a celebrity, whether following is mutual. You will find witnesses and counterexamples with nested loops, and you will put the negation rule from this page into code.

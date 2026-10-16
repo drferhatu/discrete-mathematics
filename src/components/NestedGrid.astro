@@ -1,0 +1,216 @@
+---
+/**
+ * "Order matters": nested quantifiers on a follow relation F(x, y) = "x follows y", drawn as a grid
+ * (row = x, column = y). Click cells to change who follows whom.
+ *   ∀x∃y  = every ROW has a 1        ∃y∀x = some COLUMN is all 1s
+ *   ∃x∀y  = some ROW is all 1s       ∀y∃x = every COLUMN has a 1
+ */
+interface Props { id?: string; initial?: string; }
+const { id = 'ng', initial = 'AxEy' } = Astro.props;
+const names = ['Ada', 'Bora', 'Cem', 'Deniz', 'Ece'];
+// Ada→Bora, Bora→Cem, Cem→Ada, Deniz→Ada, Ece→Deniz: everyone follows someone, nobody is followed by all
+const follows = [
+  [0, 1, 0, 0, 0],
+  [0, 0, 1, 0, 0],
+  [1, 0, 0, 0, 0],
+  [1, 0, 0, 0, 0],
+  [0, 0, 0, 1, 0],
+];
+const presets = [
+  { id: 'AxEy', label: '∀x ∃y F(x,y)' },
+  { id: 'EyAx', label: '∃y ∀x F(x,y)' },
+  { id: 'ExAy', label: '∃x ∀y F(x,y)' },
+  { id: 'AyEx', label: '∀y ∃x F(x,y)' },
+  { id: 'AxAy', label: '∀x ∀y F(x,y)' },
+  { id: 'ExEy', label: '∃x ∃y F(x,y)' },
+];
+---
+<div class="ngrid card my-8 overflow-hidden shadow-soft" data-ngrid id={id} data-initial={initial}
+  data-names={JSON.stringify(names)} data-follows={JSON.stringify(follows)}>
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">order matters · F(x, y): x follows y · row = x, column = y</span>
+    <label class="flex items-center gap-2 font-mono text-[11px] text-ink-2">
+      <input type="checkbox" data-ng-diag checked class="accent-[var(--brand)]" /> ignore x = y (nobody follows themselves)
+    </label>
+  </div>
+
+  <div class="flex flex-wrap gap-1.5 px-4 pt-4 sm:px-5">
+    {presets.map((p) => (
+      <button type="button" data-ng={p.id} class="ng-btn rounded-md border border-line px-2.5 py-1.5 font-mono text-[12px] text-ink-2 hover:border-brand hover:text-brand">{p.label}</button>
+    ))}
+  </div>
+
+  <div class="grid grid-cols-1 gap-5 p-4 sm:p-5">
+    <div>
+      <p data-ng-english class="text-[15px] font-semibold leading-snug text-ink"></p>
+      <p data-ng-shape class="mt-1 text-sm text-ink-3"></p>
+      <div class="mt-4 overflow-x-auto">
+        <table class="ng-table mx-auto border-collapse text-center font-mono text-[13px]" data-ng-table></table>
+      </div>
+      <p class="mt-3 text-center text-xs text-ink-3">Click a cell to switch “x follows y” on or off.</p>
+    </div>
+    <div class="min-w-0 border-t border-line pt-5">
+      <p data-ng-verdict class="rounded-lg px-3 py-2 font-mono text-sm font-semibold"></p>
+      <p data-ng-why class="mt-3 text-[15px] leading-relaxed text-ink-2"></p>
+      <p class="eyebrow mt-4">Python: a loop inside a loop</p>
+      <pre class="mt-1 whitespace-pre-wrap break-words rounded-lg border border-line bg-paper px-3 py-2 font-mono text-[12px] text-ink"><code data-ng-py></code></pre>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  /* keep the lesson-page table styles (full width, row borders) away from the grid */
+  .prose-lesson .ngrid table.ng-table { display: table; width: auto; }
+  .prose-lesson .ngrid table.ng-table th, .prose-lesson .ngrid table.ng-table td { padding: 0.25rem 0.4rem; border-bottom: 0; }
+  .ngrid .ng-btn[aria-pressed='true'] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+  .ngrid td.ng-cell { width: 2.6rem; height: 2.3rem; border: 1px solid var(--line); cursor: pointer; }
+  .ngrid td.ng-cell:hover { outline: 2px solid var(--brand); outline-offset: -2px; }
+  .ngrid td.ng-diag { background: repeating-linear-gradient(45deg, var(--paper-2), var(--paper-2) 4px, var(--card) 4px, var(--card) 8px); cursor: default; }
+  .ngrid td.ng-diag .tv { opacity: 0.35; }
+  .ngrid .ng-ok { box-shadow: inset 0 0 0 2px var(--true); }
+  .ngrid .ng-bad { box-shadow: inset 0 0 0 2px var(--false); }
+  .ngrid th.ng-ok, .ngrid th.ng-bad { border-radius: 6px; }
+  .ngrid .ng-mark { background: color-mix(in srgb, var(--true) 16%, transparent); }
+  .ngrid .ng-miss { background: color-mix(in srgb, var(--false) 14%, transparent); }
+</style>
+
+<script>
+  type Ctx = { n: number; F: number[][]; names: string[]; diag: boolean };
+  const on = (c: Ctx, x: number, y: number) => (c.diag && x === y ? null : c.F[x][y] === 1);
+
+  // rows (x) or columns (y); returns per-line results
+  const lineHas = (c: Ctx, line: number, byRow: boolean) => {
+    for (let k = 0; k < c.n; k++) { const v = byRow ? on(c, line, k) : on(c, k, line); if (v) return k; }
+    return -1;
+  };
+  const lineAll = (c: Ctx, line: number, byRow: boolean) => {
+    for (let k = 0; k < c.n; k++) { const v = byRow ? on(c, line, k) : on(c, k, line); if (v === false) return k; }
+    return -1; // no zero: full
+  };
+
+  type Out = { value: boolean; english: string; shape: string; why: string; py: string;
+    rowCls?: (x: number) => string; colCls?: (y: number) => string; cellCls?: (x: number, y: number) => string };
+
+  const Q: Record<string, (c: Ctx) => Out> = {
+    AxEy: (c) => {
+      const w = [...Array(c.n)].map((_, x) => lineHas(c, x, true));
+      const bad = w.indexOf(-1);
+      return {
+        value: bad === -1, english: 'Everyone follows someone.',
+        shape: 'In the grid: every ROW contains at least one 1.',
+        why: bad === -1
+          ? `True. Each person has their own witness: ${w.map((y, x) => `${c.names[x]} → ${c.names[y]}`).join(', ')}. The witness may be different for each row; that is what ∀x∃y allows.`
+          : `False: ${c.names[bad]}'s row has no 1, so ${c.names[bad]} follows nobody. One bad row is a counterexample to ∀x.`,
+        py: 'all(any(F(x, y) for y in people) for x in people)',
+        rowCls: (x) => (w[x] === -1 ? 'ng-bad' : 'ng-ok'),
+        cellCls: (x, y) => (w[x] === y ? 'ng-mark' : ''),
+      };
+    },
+    EyAx: (c) => {
+      const full = [...Array(c.n)].map((_, y) => lineAll(c, y, false));
+      const star = full.indexOf(-1);
+      return {
+        value: star !== -1, english: 'Someone is followed by everyone (a celebrity).',
+        shape: 'In the grid: some COLUMN is entirely 1.',
+        why: star !== -1
+          ? `True: ${c.names[star]} is followed by everyone${c.diag ? ' else' : ''}. ONE person works for all rows at once.`
+          : `False: every column has a 0 somewhere. ${full.map((x, y) => `${c.names[y]} is not followed by ${c.names[x]}`).join('; ')}. Try making everyone follow Ada.`,
+        py: 'any(all(F(x, y) for x in people) for y in people)',
+        colCls: (y) => (y === star ? 'ng-ok' : star === -1 ? 'ng-bad' : ''),
+        cellCls: (x, y) => (y === star ? 'ng-mark' : star === -1 && full[y] === x ? 'ng-miss' : ''),
+      };
+    },
+    ExAy: (c) => {
+      const full = [...Array(c.n)].map((_, x) => lineAll(c, x, true));
+      const fan = full.indexOf(-1);
+      return {
+        value: fan !== -1, english: 'Someone follows everyone.',
+        shape: 'In the grid: some ROW is entirely 1.',
+        why: fan !== -1 ? `True: ${c.names[fan]} follows everyone${c.diag ? ' else' : ''}.` : 'False: every row has a 0 somewhere. Nobody follows everybody.',
+        py: 'any(all(F(x, y) for y in people) for x in people)',
+        rowCls: (x) => (x === fan ? 'ng-ok' : fan === -1 ? 'ng-bad' : ''),
+        cellCls: (x, y) => (x === fan ? 'ng-mark' : fan === -1 && full[x] === y ? 'ng-miss' : ''),
+      };
+    },
+    AyEx: (c) => {
+      const w = [...Array(c.n)].map((_, y) => lineHas(c, y, false));
+      const bad = w.indexOf(-1);
+      return {
+        value: bad === -1, english: 'Everyone has at least one follower.',
+        shape: 'In the grid: every COLUMN contains at least one 1.',
+        why: bad === -1 ? 'True: every column has a 1.' : `False: ${c.names[bad]}'s column is empty, so nobody follows ${c.names[bad]}.`,
+        py: 'all(any(F(x, y) for x in people) for y in people)',
+        colCls: (y) => (w[y] === -1 ? 'ng-bad' : 'ng-ok'),
+        cellCls: (x, y) => (w[y] === x ? 'ng-mark' : ''),
+      };
+    },
+    AxAy: (c) => {
+      let miss: [number, number] | null = null;
+      for (let x = 0; x < c.n && !miss; x++) for (let y = 0; y < c.n; y++) if (on(c, x, y) === false) { miss = [x, y]; break; }
+      return {
+        value: !miss, english: 'Everyone follows everyone.',
+        shape: 'In the grid: every cell is 1.',
+        why: miss ? `False: ${c.names[miss[0]]} does not follow ${c.names[miss[1]]}. One empty cell is enough.` : 'True: the grid is full.',
+        py: 'all(all(F(x, y) for y in people) for x in people)',
+        cellCls: (x, y) => (miss && miss[0] === x && miss[1] === y ? 'ng-miss' : ''),
+      };
+    },
+    ExEy: (c) => {
+      let hit: [number, number] | null = null;
+      for (let x = 0; x < c.n && !hit; x++) for (let y = 0; y < c.n; y++) if (on(c, x, y)) { hit = [x, y]; break; }
+      return {
+        value: !!hit, english: 'Somebody follows somebody.',
+        shape: 'In the grid: at least one cell is 1.',
+        why: hit ? `True: ${c.names[hit[0]]} follows ${c.names[hit[1]]}. One pair is enough.` : 'False: the grid is empty.',
+        py: 'any(any(F(x, y) for y in people) for x in people)',
+        cellCls: (x, y) => (hit && hit[0] === x && hit[1] === y ? 'ng-mark' : ''),
+      };
+    },
+  };
+
+  const tv = (b: boolean) => `<span class="tv ${b ? 'tv-1' : 'tv-0'}">${b ? 1 : 0}</span>`;
+
+  document.querySelectorAll<HTMLElement>('[data-ngrid]').forEach((root) => {
+    const c: Ctx = { names: JSON.parse(root.dataset.names!), F: JSON.parse(root.dataset.follows!), n: 0, diag: true };
+    c.n = c.names.length;
+    let cur = root.dataset.initial || 'AxEy';
+    const $ = (s: string) => root.querySelector<HTMLElement>(s)!;
+
+    const render = () => {
+      const o = Q[cur](c);
+      root.querySelectorAll<HTMLButtonElement>('[data-ng]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ng === cur)));
+      $('[data-ng-english]').textContent = o.english;
+      $('[data-ng-shape]').textContent = o.shape;
+      $('[data-ng-py]').textContent = o.py;
+      $('[data-ng-why]').textContent = o.why;
+      const v = $('[data-ng-verdict]');
+      v.textContent = o.value ? '✓ TRUE for this network' : '✗ FALSE for this network';
+      v.className = 'rounded-lg px-3 py-2 font-mono text-sm font-semibold ' + (o.value ? 'bg-true-soft text-true' : 'bg-false-soft text-false');
+      let html = '<thead><tr><th class="px-2 py-1 text-[10px] font-normal text-ink-3">x \\ y</th>' +
+        c.names.map((n, y) => `<th class="px-1.5 py-1 text-xs font-semibold text-ink ${o.colCls?.(y) ?? ''}">${n}</th>`).join('') + '</tr></thead><tbody>';
+      for (let x = 0; x < c.n; x++) {
+        html += `<tr><th class="px-2 py-1 text-right text-xs font-semibold text-ink ${o.rowCls?.(x) ?? ''}">${c.names[x]}</th>`;
+        for (let y = 0; y < c.n; y++) {
+          const d = c.diag && x === y;
+          html += `<td class="ng-cell ${d ? 'ng-diag' : ''} ${d ? '' : o.cellCls?.(x, y) ?? ''}" data-x="${x}" data-y="${y}">${tv(c.F[x][y] === 1)}</td>`;
+        }
+        html += '</tr>';
+      }
+      $('[data-ng-table]').innerHTML = html + '</tbody>';
+    };
+
+    root.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const cell = t.closest<HTMLElement>('td[data-x]');
+      if (cell) {
+        const x = Number(cell.dataset.x), y = Number(cell.dataset.y);
+        if (c.diag && x === y) return;
+        c.F[x][y] = c.F[x][y] ? 0 : 1; render(); return;
+      }
+      const b = t.closest<HTMLButtonElement>('[data-ng]');
+      if (b) { cur = b.dataset.ng!; render(); }
+    });
+    root.querySelector<HTMLInputElement>('[data-ng-diag]')!.addEventListener('change', (e) => { c.diag = (e.target as HTMLInputElement).checked; render(); });
+    render();
+  });
+</script>
