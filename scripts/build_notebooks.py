@@ -437,11 +437,137 @@ md("""## Your turn
 3. Write `exists_forall` for the statement “someone follows everyone” and add it to the plot."""),
 ]
 
+# ---------------------------------------------------------------------------
+# LAB 5 · Watching an inference engine think
+# ---------------------------------------------------------------------------
+LAB05 = [
+md("""# Lab 5 · Explore: watching an inference engine think
+
+**Discrete Mathematics (YMT211)** · Fall 2026
+
+The playground half of Lab 5. Nothing here is graded. We draw a rule base, watch forward chaining work pass by pass,
+see how backward chaining branches out from a goal, and finish with a tiny resolution prover that proves the
+canoe-trip argument from the notes by deriving a contradiction."""),
+md("""## 1 · The course advisor as a picture
+
+Each rule “if A and B then C” becomes arrows from its conditions to its conclusion. Starting facts are on the left."""),
+code("""import networkx as nx
+import matplotlib.pyplot as plt
+
+RULES = [
+    (("passed_math1",), "can_take_discrete"),
+    (("passed_programming1", "can_take_discrete"), "can_take_algorithms"),
+    (("can_take_algorithms",), "can_take_data_structures"),
+    (("passed_math1", "passed_physics1"), "can_take_signals"),
+    (("can_take_data_structures", "can_take_signals"), "can_take_ml"),
+]
+G = nx.DiGraph()
+for conds, concl in RULES:
+    for c in conds:
+        G.add_edge(c, concl)
+
+layers = {n: 0 for n in G if G.in_degree(n) == 0}
+for n in nx.topological_sort(G):
+    if n not in layers:
+        layers[n] = 1 + max(layers[p] for p in G.predecessors(n))
+nx.set_node_attributes(G, layers, "layer")
+pos = nx.multipartite_layout(G, subset_key="layer")
+
+fig, ax = plt.subplots(figsize=(10, 4.5))
+nx.draw_networkx(G, pos, ax=ax, node_color=["#dcf3ea" if layers[n] == 0 else "#e8e8fc" for n in G],
+                 edgecolors="#3a39d0", node_size=2600, font_size=7.5, arrowsize=14, edge_color="#6c6e7f")
+ax.set_axis_off(); plt.tight_layout(); plt.show()"""),
+md("""## 2 · Forward chaining, pass by pass
+
+The same loop as in `forward_chain`, but it prints what each pass learns."""),
+code("""def forward_trace(facts, rules):
+    known = set(facts)
+    step = 0
+    while True:
+        step += 1
+        new = []
+        for conds, concl in rules:
+            if concl not in known and all(c in known for c in conds):
+                known.add(concl)
+                new.append(concl)
+        print(f"pass {step}: {', '.join(new) if new else 'nothing new, stop'}")
+        if not new:
+            return known
+
+forward_trace({"passed_math1", "passed_programming1", "passed_physics1"}, RULES);"""),
+md("""Now the same rules in the **opposite** order. The result is identical, but it takes more passes, exactly as the
+week 6 notes predicted."""),
+code("""forward_trace({"passed_math1", "passed_programming1", "passed_physics1"}, RULES[::-1]);"""),
+md("""## 3 · Backward chaining branches out from the goal
+
+Backward chaining asks “what would I need?” and recurses. Printing each question with indentation shows the shape of
+the search: a tree whose root is the goal and whose leaves are known facts."""),
+code("""def backward_trace(goal, facts, rules, depth=0, visiting=frozenset()):
+    pad = "    " * depth
+    if goal in facts:
+        print(f"{pad}{goal}  ✓ known fact")
+        return True
+    if goal in visiting:
+        print(f"{pad}{goal}  ↺ loop, give up on this branch")
+        return False
+    for conds, concl in rules:
+        if concl == goal:
+            print(f"{pad}{goal}  ? try: {' and '.join(conds)}")
+            if all(backward_trace(c, facts, rules, depth + 1, visiting | {goal}) for c in conds):
+                print(f"{pad}{goal}  ✓ proved")
+                return True
+    print(f"{pad}{goal}  ✗ no rule works")
+    return False
+
+backward_trace("can_take_ml", {"passed_math1", "passed_programming1", "passed_physics1"}, RULES)"""),
+md("""Try a student who never took Physics I: the search fails exactly at `passed_physics1`."""),
+code("""backward_trace("can_take_ml", {"passed_math1", "passed_programming1"}, RULES)"""),
+md("""## 4 · A resolution prover in fifteen lines
+
+A **clause** is a set of literals such as `{"~p", "q"}` (meaning ¬p ∨ q). Resolution takes two clauses with a
+complementary pair, like `p` and `~p`, and joins what is left. To prove a conclusion, add its **negation** to the
+premises and resolve until the **empty clause** appears: then the premises and “not the conclusion” cannot all be
+true, so the conclusion follows."""),
+code("""from itertools import combinations
+
+def neg(lit):
+    return lit[1:] if lit.startswith("~") else "~" + lit
+
+def resolve_all(clauses):
+    clauses = {frozenset(c) for c in clauses}
+    while True:
+        new = set()
+        for a, b in combinations(clauses, 2):
+            for lit in a:
+                if neg(lit) in b:
+                    r = (a - {lit}) | (b - {neg(lit)})
+                    if not r:
+                        return True                   # empty clause: contradiction found
+                    new.add(frozenset(r))
+        if new <= clauses:
+            return False                              # nothing new: no contradiction
+        clauses |= new
+
+# Canoe trip: ¬p ∧ q,  r → p,  ¬r → s,  s → t   ∴ t
+premises = [{"~p"}, {"q"}, {"~r", "p"}, {"r", "s"}, {"~s", "t"}]
+print("premises + ¬t contradictory?", resolve_all(premises + [{"~t"}]))   # True: so t follows
+print("premises + t contradictory? ", resolve_all(premises + [{"t"}]))    # False: ¬t does not follow"""),
+md("""> Notice how each rule became a clause: $r \\to p$ is $\\neg r \\lor p$, and $\\neg r \\to s$ is $r \\lor s$.
+> The prover knows **only one rule**, resolution, and that is enough.
+
+## Your turn
+
+1. Add a rule of your own to `RULES` (for example a course that needs Signals) and re-run sections 1 and 2.
+2. In section 3, remove the rule for `can_take_signals`. What does the trace print?
+3. Use `resolve_all` to check the debugging argument from the notes: `a ∨ d`, `d → f`, `¬f`, therefore `a`."""),
+]
+
 NOTEBOOKS = {
     "lab01": (ROOT / "labs" / "templates" / "lab01" / "lab01.ipynb", LAB01),
     "lab02": (ROOT / "labs" / "templates" / "lab02" / "lab02.ipynb", LAB02),
     "lab03": (ROOT / "labs" / "templates" / "lab03" / "lab03.ipynb", LAB03),
     "lab04": (ROOT / "labs" / "templates" / "lab04" / "lab04.ipynb", LAB04),
+    "lab05": (ROOT / "labs" / "templates" / "lab05" / "lab05.ipynb", LAB05),
 }
 
 SKIP_TAG = "skip-execution"

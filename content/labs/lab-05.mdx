@@ -1,0 +1,227 @@
+---
+lab: 5
+week: 6
+title: "A Tiny Inference Engine"
+description: "Check arguments for validity by brute force, build a forward-chaining engine that applies modus ponens until nothing new appears, make it explain its conclusions, add backward chaining, and turn a set of course prerequisites into rules."
+assignment: lab05
+mode: classroom50
+status: open
+duration: "75 min + finish at home"
+points: 100
+files: ["inference.py"]
+topics: ["validity", "modus ponens", "forward chaining", "explanations", "backward chaining"]
+notebook: { file: "labs/templates/lab05/lab05.ipynb", title: "Lab 5 · Explore: watching an inference engine think" }
+---
+
+## Goal
+
+This week's notes ended with a small surprise: a loop that applies modus ponens until nothing new appears is already a genuine reasoning machine. In this lab you will build that machine yourself, one piece at a time, and then teach it to do two things that real rule engines do: **explain** how it reached a conclusion, and **work backwards** from a question to the facts that answer it.
+
+Everything happens in one file, `inference.py`. The functions build on each other, so please work through them **in order**, and run `python check.py` after each step.
+
+> [!note] You can start without the instructor
+> Every step below tells you what the function should do, shows an example with the expected result, and gives a hint about how to write it. Ask your neighbour first, then the instructor. If a step blocks you for more than ten minutes, note the error message and move on to the next one.
+
+## Steps
+
+<Step n={1} title="Accept Lab 5 and open it" time="3 min" id="accept">
+
+Click the orange **Accept lab lab05** button at the top of this page and then **Accept assignment**. When the checklist finishes, click **Open repository**, and open the repository with the green **Code** button → **Codespaces** → **Create codespace on main**.
+
+You may also work on your own computer or in another editor; see [Other ways to work and submit](#other-ways-to-work-and-submit).
+
+</Step>
+
+<Step n={2} title="Understand facts and rules" time="5 min" id="look">
+
+Open `inference.py` and read the comment at the top. Two ideas carry the whole lab.
+
+A **fact** is simply a string that names something known to be true, such as `"passed_math1"`. A set of facts is a Python `set` of such strings.
+
+A **rule** is a pair: a tuple of conditions and a conclusion. The rule
+
+```python
+(("passed_programming1", "can_take_discrete"), "can_take_algorithms")
+```
+
+means “if `passed_programming1` and `can_take_discrete` are both known, then `can_take_algorithms` is known too”. A rule with a single condition still uses a tuple, which in Python needs a trailing comma: `("passed_math1",)`. A list of rules is a plain Python list, and “rule number $i$” means `rules[i]`.
+
+Run the checks once before you write anything. All of them should report that nothing is implemented yet.
+
+<Terminal cmd="python check.py" out={`:| modus ponens, modus tollens and hypothetical syllogism are valid
+    not implemented yet (still raises NotImplementedError)
+...
+0/20 checks passed`} />
+
+</Step>
+
+<Step n={3} title="Part A: is an argument valid?" time="12 min" id="validity">
+
+Your first two functions are the Python version of the argument checker on the week 6 page. An argument here is a list of premises and a conclusion, and each of them is a function of $n$ booleans. For example, the conditional $p \to q$ is written `lambda p, q: (not p) or q`.
+
+**`counterexample(premises, conclusion, n)`** goes through every row of the truth table, using `product([True, False], repeat=n)` exactly as in Lab 1. In each row, it asks two questions: are **all** the premises true, and is the conclusion **false**? The first row where both answers are “yes” is a counterexample, and the function returns it. If no row qualifies, it returns `None`.
+
+When you call a premise on a row, unpack the tuple with a star: `p(*row)`. To check that every premise is true in that row, `all(p(*row) for p in premises)` does the job.
+
+**`is_valid(premises, conclusion, n)`** is then a single line: an argument is valid exactly when it has no counterexample.
+
+```python
+implies = lambda a, b: (not a) or b
+counterexample([lambda p, q: implies(p, q), lambda p, q: q], lambda p, q: p, 2)
+# (False, True): p is false, q is true, both premises hold, the conclusion fails
+```
+
+That is the fallacy of affirming the conclusion, caught by your own code.
+
+</Step>
+
+<Step n={4} title="Part B: can a rule fire?" time="5 min" id="can-fire">
+
+**`can_fire(rule, facts)`** decides whether a rule is ready to produce something new. Two things must be true at the same time: **every** condition of the rule is already a known fact, and the conclusion is **not** yet known. The second requirement matters more than it seems: without it, the engine would “discover” the same fact again and again and never stop.
+
+```python
+can_fire((("a", "b"), "c"), {"a", "b"})   # True
+can_fire((("a", "b"), "c"), {"a"})        # False: b is not known yet
+can_fire((("a",), "c"), {"a", "c"})       # False: c is already known
+```
+
+A natural way to write it is to unpack the rule first, `conditions, conclusion = rule`, and then combine `all(...)` with a membership test.
+
+</Step>
+
+<Step n={5} title="Part B: forward chaining" time="12 min" id="forward">
+
+**`forward_chain(facts, rules)`** is the engine from the notes. It returns the set of **all** facts that follow from the starting facts.
+
+Here is the plan, in words. Start from a **copy** of the facts, never the original set: `known = set(facts)`. Then make passes over the rules. During a pass, go through the rules in order, and whenever a rule can fire, add its conclusion to `known`. Keep a flag that remembers whether this pass added anything. When a complete pass adds nothing new, stop and return `known`.
+
+```python
+forward_chain({"a"}, [(("a",), "b"), (("b",), "c")])    # {"a", "b", "c"}
+```
+
+> [!warning] One pass is not enough
+> It is tempting to loop over the rules once. The checks include a case where the rules are listed in the “wrong” order, so that each rule only becomes ready after the next one has fired. Only an engine that keeps making passes until nothing changes will find every fact. If you are unsure, look again at the forward-chaining section of the week 6 notes, which explains exactly this.
+
+</Step>
+
+<Step n={6} title="Part C: remembering why" time="10 min" id="reasons">
+
+A rule engine that cannot explain itself is hard to trust. The first step towards explanations is to remember **which rule** produced each fact.
+
+**`reasons(facts, rules)`** runs exactly the same passes as `forward_chain`, but instead of a set it builds a dictionary. Every starting fact maps to `None`, and every derived fact maps to the **number** of the rule that first added it.
+
+```python
+reasons({"a"}, [(("a",), "b"), (("b",), "c")])    # {"a": None, "b": 0, "c": 1}
+```
+
+Two small tips. Use `for i, rule in enumerate(rules)` to get the rule numbers. And you can reuse `can_fire(rule, why)` with the dictionary itself, because the `in` test on a dictionary checks its keys.
+
+</Step>
+
+<Step n={7} title="Part C: explaining a conclusion" time="12 min" id="explain">
+
+**`explain(goal, facts, rules)`** turns those reasons into a story: the list of facts needed to reach the goal, in an order in which each fact can be derived from the ones before it, ending with the goal itself. If the goal does not follow at all, it returns `None`.
+
+The cleanest way to write it is with a small helper function inside `explain` that **visits** a fact:
+
+- if the fact is already in the list, do nothing;
+- if the fact was derived by rule $i$, first visit each condition of `rules[i]`, in the order they are written;
+- then append the fact to the list.
+
+Call the helper on the goal, and return the list.
+
+```python
+rules = [(("a",), "b"), (("b", "x"), "c"), (("a",), "x")]
+explain("c", {"a"}, rules)     # ["a", "b", "x", "c"]
+```
+
+Read the result aloud and it becomes an argument in the style of the notes: we know `a`; from `a`, rule 0 gives `b`; from `a`, rule 2 gives `x`; from `b` and `x`, rule 1 gives `c`.
+
+</Step>
+
+<Step n={8} title="Part D: backward chaining" time="15 min" id="backward">
+
+Forward chaining computes everything it can and only then looks at the question. **Backward chaining** starts from the question and only explores what it needs, which is how we planned the lake argument in the notes.
+
+**`backward_chain(goal, facts, rules, visiting=None)`** answers “can `goal` be proved?” with three cases:
+
+1. If the goal is a known fact, the answer is `True`.
+2. If the goal is already in `visiting`, we are going round in a circle, so this branch fails: return `False`.
+3. Otherwise, look at every rule whose conclusion is the goal. If **all** of that rule's conditions can be proved, by calling `backward_chain` on each of them, the goal is proved. If no rule works, return `False`.
+
+This is your first **recursive** function in this course: it calls itself on smaller questions. When you make those calls, pass `visiting | {goal}` as the last argument, so that each branch remembers which goals it is already working on. At the very start, when `visiting` is `None`, replace it with an empty set.
+
+```python
+backward_chain("c", {"a"}, [(("a",), "b"), (("b",), "c")])    # True
+backward_chain("x", {"a"}, [(("x",), "y"), (("y",), "x")])    # False: a circle that never reaches a fact
+```
+
+Without the `visiting` check, the second example would call itself forever until Python stops it with a `RecursionError`. The checks also compare your backward chaining with forward chaining on forty random rule bases: the two strategies must always agree.
+
+</Step>
+
+<Step n={9} title="Part E: a course advisor" time="10 min" id="advisor">
+
+The last task is translation, from English sentences to rules. **`advisor_rules()`** must return the rules for these five statements:
+
+1. A student who passed Math I can take Discrete Mathematics.
+2. A student who passed Programming I and can take Discrete Mathematics can take Algorithms.
+3. A student who can take Algorithms can take Data Structures.
+4. A student who passed Math I and passed Physics I can take Signals.
+5. A student who can take Data Structures and can take Signals can take Machine Learning.
+
+Use exactly the fact names listed in the docstring. Read each sentence slowly and make sure every condition appears in your rule; a forgotten condition makes the advisor far too generous, and the checks try several different students to catch exactly that.
+
+<Terminal cmd="python inference.py" out={`modus ponens valid?            : True
+affirming the conclusion valid?: False
+this student can take          : ['can_take_algorithms', 'can_take_data_structures', 'can_take_discrete', 'can_take_ml', 'can_take_signals']
+why can_take_ml?               : [...]
+backward: can_take_ml?         : True`} />
+
+The exact list after “why” depends on the order in which you wrote the rules and their conditions. Any order is fine, as long as every fact in it follows from the ones before it.
+
+</Step>
+
+<Step n={10} title="Submit" time="1 min" id="submit">
+
+When `python check.py` reports `20/20 checks passed`, or when you have done as much as you can, push your work. **Every push is graded out of 100.**
+
+<Terminal lines={['git add -A', 'git commit -m "Lab 5"', 'git push']} />
+
+About two minutes later your score appears under **Releases** on your repository page. Your last push before **Friday 23:59** is the one that counts.
+
+</Step>
+
+## Other ways to work and submit
+
+You do not have to use Codespaces or a terminal.
+
+**Work anywhere:** on your own computer (download the repository with **Code → Download ZIP**, then run `pip install pytest` and `python check.py`), on [cs50.dev](https://cs50.dev), in Google Colab, or in [github.dev](https://github.dev) by pressing <span class="kbd">.</span> on your repository page.
+
+**Submit from the browser:** open `inference.py` in your repository on github.com, click the pencil icon ✎, select everything and paste your **whole** file, then click **Commit changes**. Alternatively, use **Add file → Upload files** and drag your `inference.py` in. Keep the file name exactly `inference.py`. Every commit is graded in the same way as a push.
+
+## Explore: the notebook
+
+The notebook draws the course advisor as a graph, prints forward chaining pass by pass (and shows that the same rules in the opposite order need more passes), prints the tree of questions that backward chaining asks, and ends with a fifteen-line **resolution prover** that proves the canoe-trip argument from the notes by deriving the empty clause.
+
+<NotebookEmbed file="labs/templates/lab05/lab05.ipynb" title="Lab 5 · Explore notebook" />
+
+## Challenges (optional, not graded)
+
+1. **Why not?** Write `missing(goal, facts, rules)`, which returns the starting facts that, if added, would make the goal provable. For a student who has not taken Physics I, it should point to `passed_physics1`.
+2. **Pretty explanations.** Turn the list returned by `explain` into numbered lines with reasons, in the style of the tables in the notes: `3. can_take_algorithms   from 1 and 2 by rule 1`.
+3. **Count the work.** Count how many times `can_fire` is called by `forward_chain` and how many goals `backward_chain` visits when you ask about `can_take_ml`. Which strategy does less work for a single question?
+
+## Troubleshooting
+
+> [!note] `TypeError: 'str' object is not callable` or strange results with one-condition rules
+> A tuple with one element needs a comma: `("passed_math1",)`. Without the comma, `("passed_math1")` is just a string, and looping over it gives single letters.
+
+> [!note] `forward_chain` passes the first check but not the “wrong order” check
+> Your engine makes only one pass. Keep looping until a whole pass adds nothing new.
+
+> [!note] “forward_chain must not modify the facts it receives”
+> Start with `known = set(facts)` and add to `known`, not to `facts`.
+
+> [!note] `RecursionError: maximum recursion depth exceeded`
+> Your `backward_chain` is going round a circle of rules. Check the `visiting` set before trying the rules, and pass `visiting | {goal}` to every recursive call.
