@@ -72,7 +72,12 @@ def main():
             status, passed, late, pushed, note = "Teslim yok", 0, 0, "", ("Ödev kabul edilmedi" if c50 else "Depo oluşturulmadı / paylaşılmadı")
         else:
             passed, late, pushed = float(res["passed"] or 0), int(res["late_days"] or 0), res["pushed_at"]
-            status = "Teslim edildi" if pushed else ("Kabul edildi, push yok" if c50 else "Kod push edilmedi")
+            if pushed:
+                status = "Teslim edildi"
+            elif "after the late window" in (res.get("note") or ""):
+                status = "Süre dışında teslim"
+            else:
+                status = "Kabul edildi, push yok" if c50 else "Kod push edilmedi"
             note = res["note"] or ("Yalnızca README güncellenmiş" if not passed else "")
         values = [i + 1, int(s["student_id"]), f"{s['first_name']} {s['last_name']}",
                   res["github"] if res else (s.get("github_lab01") or ""), status, passed, total_tests, late]

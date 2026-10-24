@@ -57,6 +57,19 @@ def roster():
     return {r["username"].lower(): r for r in csv.DictReader(io.StringIO(text)) if r["username"] and r["role"] == "student"}
 
 
+def norm(text):
+    """lower-case, Turkish-aware, for matching names"""
+    return " ".join(text.replace("İ", "i").replace("I", "ı").lower().split())
+
+
+def class_list_ids():
+    """(first, last) → student number, from the official class list private/roster.csv"""
+    path = ROOT / "private" / "roster.csv"
+    if not path.exists():
+        return {}
+    return {(norm(r["first_name"]), norm(r["last_name"])): r["student_id"] for r in csv.DictReader(path.open(encoding="utf-8"))}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("lab")
@@ -70,6 +83,15 @@ def main():
     print(f"· deadline {due_local} (Türkiye), late submissions until {cutoff.astimezone(TZ):%Y-%m-%d %H:%M}")
 
     people = roster()
+    ids_by_name = class_list_ids()
+    # older GitHub accounts a student used before (column github_lab01 of the class list)
+    old_accounts = {}
+    cl_path = ROOT / "private" / "roster.csv"
+    if cl_path.exists():
+        for r in csv.DictReader(cl_path.open(encoding="utf-8")):
+            if r.get("github_lab01"):
+                old_accounts[r["github_lab01"].lower()] = {"username": r["github_lab01"], "first_name": r["first_name"],
+                                                           "last_name": r["last_name"], "email": r["email"]}
     prefix = f"{CL['slug']}-{a.lab}-".lower()
     repos = sorted(r["name"] for r in gh_all(f"orgs/{CL['org']}/repos?type=all") if r["name"].lower().startswith(prefix))
     print(f"· {len(repos)} repositories\n")
@@ -79,8 +101,11 @@ def main():
         user = name[len(prefix):]
         if user in {x.lower() for x in a.exclude}:
             continue
-        p = people.get(user, {})
-        sid = (p.get("email") or "").split("@")[0]
+        p = people.get(user) or old_accounts.get(user, {})
+        email = p.get("email") or ""
+        # a university address carries the student number; otherwise (e.g. a personal Gmail) match by name
+        sid = email.split("@")[0] if email.lower().endswith("@firat.edu.tr") else \
+            ids_by_name.get((norm(p.get("first_name", "")), norm(p.get("last_name", ""))), "")
         subs = []
         for rel in gh_all(f"repos/{CL['org']}/{name}/releases"):
             m, s = TAG.match(rel["tag_name"]), SCORE.search(rel.get("body") or "")
