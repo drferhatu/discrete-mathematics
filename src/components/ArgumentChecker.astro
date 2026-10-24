@@ -1,0 +1,129 @@
+---
+/**
+ * Argument checker: premises (one per line) and a conclusion. Valid means: in every row where all
+ * premises are true (the "critical rows"), the conclusion is true as well. Shows those rows and,
+ * for an invalid argument, the row that breaks it.
+ */
+interface Props { id?: string; }
+const { id = 'arg' } = Astro.props;
+const presets = [
+  { label: 'modus ponens', p: 'p\np -> q', c: 'q' },
+  { label: 'modus tollens', p: '~q\np -> q', c: '~p' },
+  { label: 'hypothetical syllogism', p: 'p -> q\nq -> r', c: 'p -> r' },
+  { label: 'disjunctive syllogism', p: 'p | q\n~p', c: 'q' },
+  { label: 'resolution', p: 'p | q\n~p | r', c: 'q | r' },
+  { label: '✗ affirming the conclusion', p: 'p -> q\nq', c: 'p' },
+  { label: '✗ denying the hypothesis', p: 'p -> q\n~p', c: '~q' },
+  { label: 'canoe trip', p: '~p & q\nr -> p\n~r -> s\ns -> t', c: 't' },
+];
+---
+<div class="argcheck card my-8 overflow-hidden shadow-soft" data-arg id={id}>
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">argument checker · premises above the line, conclusion below</span>
+    <span class="font-mono text-[11px] text-ink-3">~ &amp; | ^ -&gt; &lt;-&gt;</span>
+  </div>
+  <div class="flex flex-wrap gap-1.5 px-4 pt-4 sm:px-5">
+    {presets.map((p) => (
+      <button type="button" data-arg-p={p.p} data-arg-c={p.c}
+        class="arg-btn rounded-md border border-line px-2 py-1 font-mono text-[11px] text-ink-2 hover:border-brand hover:text-brand">{p.label}</button>
+    ))}
+  </div>
+  <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:p-5">
+    <label class="block">
+      <span class="eyebrow">Premises, one per line</span>
+      <textarea data-arg-premises rows="4" spellcheck="false" autocapitalize="off"
+        class="mt-1.5 block w-full resize-y rounded-lg border border-line-2 bg-paper px-3 py-2 font-mono text-[14px] leading-relaxed text-ink outline-none focus:border-brand">p
+p -> q</textarea>
+    </label>
+    <div>
+      <label class="block">
+        <span class="eyebrow">Therefore (conclusion)</span>
+        <input data-arg-conclusion type="text" spellcheck="false" autocapitalize="off" value="q"
+          class="mt-1.5 block w-full rounded-lg border border-line-2 bg-paper px-3 py-2 font-mono text-[14px] text-ink outline-none focus:border-brand" />
+      </label>
+      <p data-arg-verdict class="mt-3 rounded-lg px-3 py-2 font-mono text-sm font-semibold"></p>
+      <p data-arg-why class="mt-2 text-[14px] leading-relaxed text-ink-2"></p>
+    </div>
+  </div>
+  <div class="border-t border-line px-4 py-4 sm:px-5">
+    <p class="eyebrow">The truth table · <span class="normal-case tracking-normal text-ink-3">critical rows (all premises true) are highlighted</span></p>
+    <div class="mt-2 max-h-[320px] overflow-auto rounded-lg border border-line">
+      <table data-arg-table class="arg-table w-full border-collapse text-center font-mono text-[12.5px]"></table>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .prose-lesson .argcheck table.arg-table { display: table; }
+  .prose-lesson .argcheck table.arg-table th, .prose-lesson .argcheck table.arg-table td { padding: 0.3rem 0.5rem; text-align: center; }
+  .argcheck .arg-critical { background: color-mix(in srgb, var(--brand) 9%, transparent); }
+  .argcheck .arg-broken { background: color-mix(in srgb, var(--false) 16%, transparent); }
+  .argcheck .arg-sep { border-left: 2px solid var(--line-2); }
+</style>
+
+<script>
+  import { compile, vars, ev, show, rowsOf, type Node } from '@/lib/logic';
+
+  const tv = (b: boolean) => `<span class="tv ${b ? 'tv-1' : 'tv-0'}">${b ? 1 : 0}</span>`;
+
+  document.querySelectorAll<HTMLElement>('[data-arg]').forEach((root) => {
+    const ta = root.querySelector<HTMLTextAreaElement>('[data-arg-premises]')!;
+    const ci = root.querySelector<HTMLInputElement>('[data-arg-conclusion]')!;
+    const verdict = root.querySelector<HTMLElement>('[data-arg-verdict]')!;
+    const why = root.querySelector<HTMLElement>('[data-arg-why]')!;
+    const table = root.querySelector<HTMLTableElement>('[data-arg-table]')!;
+
+    const fail = (msg: string) => {
+      verdict.className = 'mt-3 rounded-lg px-3 py-2 font-mono text-sm font-semibold bg-accent-soft text-accent';
+      verdict.textContent = msg; why.textContent = ''; table.innerHTML = '';
+    };
+
+    const run = () => {
+      const lines = ta.value.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (!lines.length) return fail('Write at least one premise.');
+      let P: Node[], C: Node;
+      try { P = lines.map((l, i) => { try { return compile(l); } catch (e) { throw new Error(`Premise ${i + 1}: ${(e as Error).message}`); } }); }
+      catch (e) { return fail((e as Error).message); }
+      try { C = compile(ci.value); } catch (e) { return fail(`Conclusion: ${(e as Error).message}`); }
+      const vs = [...new Set([...P.flatMap((n) => [...vars(n)]), ...vars(C)])].sort();
+      if (vs.length > 6) return fail('Up to 6 variables, please.');
+
+      const rows = rowsOf(vs);
+      let critical = 0, broken = -1;
+      const body = rows.map((env, i) => {
+        const pv = P.map((n) => ev(n, env));
+        const all = pv.every(Boolean);
+        const cv = ev(C, env);
+        if (all) critical++;
+        if (all && !cv && broken < 0) broken = i;
+        const cls = all && !cv ? 'arg-broken' : all ? 'arg-critical' : '';
+        return `<tr class="${cls} border-t border-line">` + vs.map((v) => `<td>${tv(env[v])}</td>`).join('') +
+          pv.map((b, k) => `<td class="${k === 0 ? 'arg-sep' : ''}">${tv(b)}</td>`).join('') +
+          `<td class="arg-sep">${tv(cv)}</td><td class="whitespace-nowrap text-left text-[11px] font-semibold ${all && !cv ? 'text-false' : 'text-brand'}">${all ? (cv ? '← critical' : '← breaks it') : ''}</td></tr>`;
+      }).join('');
+      table.innerHTML = '<thead class="sticky top-0 bg-paper-2"><tr>' +
+        vs.map((v) => `<th class="font-semibold text-ink">${v}</th>`).join('') +
+        P.map((n, k) => `<th class="${k === 0 ? 'arg-sep' : ''} whitespace-nowrap font-normal text-ink-2">${show(n)}</th>`).join('') +
+        `<th class="arg-sep whitespace-nowrap font-semibold text-brand">∴ ${show(C)}</th><th></th></tr></thead><tbody>${body}</tbody>`;
+
+      const valid = broken < 0;
+      verdict.className = 'mt-3 rounded-lg px-3 py-2 font-mono text-sm font-semibold ' + (valid ? 'bg-true-soft text-true' : 'bg-false-soft text-false');
+      verdict.textContent = valid ? '✓ valid argument' : '✗ invalid argument';
+      if (valid) {
+        why.textContent = critical === 0
+          ? 'Valid, but only because the premises can never all be true at once (they are inconsistent). From inconsistent premises anything follows.'
+          : `${critical === 1 ? 'In the only critical row' : `In all ${critical} critical rows`}, where every premise is true, the conclusion is true as well. So whenever the premises hold, the conclusion must hold.`;
+      } else {
+        const env = rows[broken];
+        why.textContent = `Counterexample: ${vs.map((v) => `${v} = ${env[v] ? 1 : 0}`).join(', ')}. Every premise is true in this row, yet the conclusion is false, so the premises do not guarantee it.`;
+      }
+    };
+
+    ta.addEventListener('input', run);
+    ci.addEventListener('input', run);
+    root.querySelectorAll<HTMLButtonElement>('[data-arg-p]').forEach((b) => b.addEventListener('click', () => {
+      ta.value = b.dataset.argP!; ci.value = b.dataset.argC!; run();
+    }));
+    run();
+  });
+</script>
