@@ -1,0 +1,193 @@
+---
+/**
+ * Counterexample hunter: pick a famous "for all n" claim and let the computer test n = start, start+step, …
+ * Each tested value becomes a green chip; the first failure becomes a red chip with an explanation.
+ * One claim (Goldbach) never fails within the search, which is the point: no failure is not a proof.
+ */
+interface Props { id?: string; }
+const { id = 'hunt' } = Astro.props;
+const claims = [
+  { key: 'odd', label: 'odd n > 1 is prime' },
+  { key: 'euler', label: 'n² + n + 41 is prime' },
+  { key: 'big', label: 'n² − 79n + 1601 is prime' },
+  { key: 'fermat', label: '2^(2^n) + 1 is prime' },
+  { key: 'squares', label: 'n is a sum of 3 squares' },
+  { key: 'goldbach2', label: 'odd composite = prime + 2k²' },
+  { key: 'goldbach', label: 'even n > 2 = prime + prime' },
+];
+---
+<div class="hunter card my-8 overflow-hidden shadow-soft" data-hunt id={id}>
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">counterexample hunter · the computer tests one case after another</span>
+    <span class="font-mono text-[11px] text-ink-3">∀n P(n) ?</span>
+  </div>
+  <div class="flex flex-wrap gap-1.5 px-4 pt-4 sm:px-5">
+    {claims.map((c, i) => (
+      <button type="button" data-hunt-claim={c.key} aria-pressed={i === 1 ? 'true' : 'false'}
+        class="hunt-btn rounded-md border border-line px-2 py-1 font-mono text-[11px] text-ink-2 hover:border-brand hover:text-brand">{c.label}</button>
+    ))}
+  </div>
+  <div class="px-4 py-4 sm:px-5">
+    <p data-hunt-title class="font-semibold text-ink"></p>
+    <p data-hunt-story class="mt-1 text-[14px] leading-relaxed text-ink-2"></p>
+    <div class="mt-3 flex flex-wrap items-center gap-3">
+      <button type="button" data-hunt-go class="btn-primary !py-1.5 !text-xs">▶ Start the hunt</button>
+      <span data-hunt-count class="font-mono text-[12px] text-ink-3"></span>
+    </div>
+    <div data-hunt-chips class="mt-3 flex min-h-[2.25rem] flex-wrap gap-1" aria-live="polite"></div>
+    <p data-hunt-verdict class="mt-3 hidden rounded-lg px-3 py-2 text-[14px] leading-relaxed"></p>
+  </div>
+</div>
+
+<style is:global>
+  .hunter .hunt-btn[aria-pressed='true'] { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+  .hunter .hunt-chip { font-family: var(--font-mono); font-size: 11.5px; padding: 0.15rem 0.45rem; border-radius: 0.375rem; line-height: 1.4; }
+  .hunter .hunt-ok { background: var(--true-soft); color: var(--true); }
+  .hunter .hunt-bad { background: var(--false); color: var(--card); font-weight: 600; }
+  .hunter .hunt-gap { color: var(--ink-3); }
+</style>
+
+<script>
+  const isPrime = (n: number) => {
+    if (n < 2) return false;
+    if (n % 2 === 0) return n === 2;
+    for (let d = 3; d * d <= n; d += 2) if (n % d === 0) return false;
+    return true;
+  };
+  const factor = (n: number) => {
+    const f: number[] = [];
+    for (let d = 2; d * d <= n; d++) while (n % d === 0) { f.push(d); n /= d; }
+    if (n > 1) f.push(n);
+    return f.join(' × ');
+  };
+  const fmt = (n: number) => n.toLocaleString('en-US');
+  const threeSquares = (n: number) => {
+    for (let a = 0; a * a <= n; a++) for (let b = a; a * a + b * b <= n; b++) {
+      const c = Math.round(Math.sqrt(n - a * a - b * b));
+      if (c >= b && a * a + b * b + c * c === n) return true;
+    }
+    return false;
+  };
+
+  type Claim = {
+    title: string; story: string; values: (i: number) => number; limit: number;
+    test: (n: number) => boolean; why: (n: number) => string; never?: string; skip?: (n: number) => boolean;
+  };
+  const C: Record<string, Claim> = {
+    odd: {
+      title: 'Claim: every odd number n > 1 is prime.',
+      story: 'The claim from the comic. Three examples in a row look convincing…',
+      values: (i) => 3 + 2 * i, limit: 50, test: isPrime,
+      why: (n) => `n = ${n} = ${factor(n)} is odd but not prime. One counterexample, and the claim is false.`,
+    },
+    euler: {
+      title: 'Claim: n² + n + 41 is prime for every n ≥ 0.',
+      story: 'Euler noticed this polynomial in 1772. It produces prime after prime after prime. Forty in a row, in fact.',
+      values: (i) => i, limit: 200, test: (n) => isPrime(n * n + n + 41),
+      why: (n) => `n = ${n}: ${n}² + ${n} + 41 = ${fmt(n * n + n + 41)} = ${factor(n * n + n + 41)}. Obvious in hindsight: at n = 40, n² + n = 40 × 41, so the whole sum is 41 × 41.`,
+    },
+    big: {
+      title: 'Claim: n² − 79n + 1601 is prime for every n ≥ 0.',
+      story: 'An even better streak, built from Euler’s polynomial by shifting n. How long can a pattern last?',
+      values: (i) => i, limit: 200, test: (n) => isPrime(n * n - 79 * n + 1601),
+      why: (n) => `n = ${n}: ${fmt(n * n - 79 * n + 1601)} = ${factor(n * n - 79 * n + 1601)}. Eighty correct cases (n = 0 to 79), and still the claim was false.`,
+    },
+    fermat: {
+      title: 'Claim: 2^(2^n) + 1 is prime for every n ≥ 0.',
+      story: 'Pierre de Fermat checked 3, 5, 17, 257 and 65,537 and in 1640 believed the pattern went on forever. The next number has ten digits, too big to test by hand.',
+      values: (i) => i, limit: 6, test: (n) => isPrime(2 ** (2 ** n) + 1),
+      why: (n) => `n = ${n}: 2^${2 ** n} + 1 = ${fmt(2 ** (2 ** n) + 1)} = 641 × 6,700,417. Euler found this factor in 1732, almost a century later. Your browser just did it in milliseconds.`,
+    },
+    squares: {
+      title: 'Claim: every positive integer is a sum of three perfect squares.',
+      story: 'The example from the slides. 1 = 1 + 0 + 0, 2 = 1 + 1 + 0, 3 = 1 + 1 + 1, 4 = 4 + 0 + 0, 5 = 4 + 1 + 0, 6 = 4 + 1 + 1…',
+      values: (i) => i + 1, limit: 50, test: threeSquares,
+      why: (n) => `n = ${n} cannot be written as a² + b² + c². The squares below it are 0, 1 and 4, and no three of them add up to ${n}.`,
+    },
+    goldbach2: {
+      title: 'Claim: every odd composite number is a prime plus twice a square.',
+      story: 'Christian Goldbach proposed this in 1752: 9 = 7 + 2·1², 15 = 7 + 2·2², 21 = 3 + 2·3², … It survived for a century.',
+      values: (i) => 9 + 2 * i, limit: 6000,
+      skip: isPrime,
+      test: (n) => {
+        for (let k = 1; 2 * k * k < n; k++) if (isPrime(n - 2 * k * k)) return true;
+        return false;
+      },
+      why: (n) => `n = ${fmt(n)} = ${factor(n)}: none of ${fmt(n)} − 2, ${fmt(n)} − 8, ${fmt(n)} − 18, … is prime. Found in 1856 by Moritz Stern and his students, by hand.`,
+    },
+    goldbach: {
+      title: 'Claim: every even number greater than 2 is a sum of two primes.',
+      story: 'Goldbach’s famous conjecture of 1742: 4 = 2 + 2, 6 = 3 + 3, 8 = 3 + 5, 10 = 5 + 5, …',
+      values: (i) => 4 + 2 * i, limit: 10000,
+      test: (n) => { for (let p = 2; p <= n / 2; p++) if (isPrime(p) && isPrime(n - p)) return true; return false; },
+      why: () => '',
+      never: 'No counterexample up to 20,002. Computers have checked every even number up to 4 × 10¹⁸, and none fails. Is it proved? <strong>No.</strong> Nobody has a proof, so it is still a conjecture, and it is one of the most famous open problems in mathematics. A search can only ever check finitely many cases.',
+    },
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-hunt]').forEach((root) => {
+    const q = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const title = q('[data-hunt-title]'), story = q('[data-hunt-story]'), go = q<HTMLButtonElement>('[data-hunt-go]');
+    const count = q('[data-hunt-count]'), chips = q('[data-hunt-chips]'), verdict = q('[data-hunt-verdict]');
+    let key = 'euler', timer = 0;
+
+    const chip = (text: string, cls: string) => {
+      const s = document.createElement('span');
+      s.className = `hunt-chip ${cls}`; s.textContent = text;
+      return s;
+    };
+    const reset = () => {
+      clearTimeout(timer);
+      title.textContent = C[key].title; story.textContent = C[key].story;
+      chips.innerHTML = ''; count.textContent = ''; verdict.classList.add('hidden');
+      go.disabled = false; go.textContent = '▶ Start the hunt';
+    };
+
+    const hunt = () => {
+      const c = C[key];
+      reset(); go.disabled = true; go.textContent = 'hunting…';
+      let i = 0;
+      const shown: number[] = [];
+      const perFrame = Math.max(1, Math.ceil(c.limit / 90));
+      const step = () => {
+        for (let k = 0; k < perFrame && i < c.limit; k++, i++) {
+          const n = c.values(i);
+          if (c.skip?.(n)) continue;
+          if (!c.test(n)) return finish(n, i + 1);
+          shown.push(n);
+        }
+        // show the most recent passing values; older ones collapse into "…"
+        chips.innerHTML = '';
+        if (shown.length > 24) chips.append(chip('…', 'hunt-gap'));
+        shown.slice(-24).forEach((n) => chips.append(chip(fmt(n), 'hunt-ok')));
+        count.textContent = `${fmt(i)} values tried, no failure yet`;
+        if (i < c.limit) timer = window.setTimeout(step, 16); else finish(null, i);
+      };
+      const finish = (n: number | null, checked: number) => {
+        chips.innerHTML = '';
+        if (shown.length > 18) chips.append(chip('…', 'hunt-gap'));
+        shown.slice(-18).forEach((m) => chips.append(chip(fmt(m), 'hunt-ok')));
+        verdict.classList.remove('hidden');
+        if (n === null) {
+          count.textContent = `${fmt(checked)} values tried, no failure`;
+          verdict.className = 'mt-3 rounded-lg px-3 py-2 text-[14px] leading-relaxed bg-brand-soft text-ink';
+          verdict.innerHTML = c.never!;
+        } else {
+          chips.append(chip(`${fmt(n)} ✗`, 'hunt-bad'));
+          count.textContent = `${fmt(checked)} values tried; the last one failed`;
+          verdict.className = 'mt-3 rounded-lg px-3 py-2 text-[14px] leading-relaxed bg-false-soft text-ink';
+          verdict.innerHTML = `<strong class="text-false">Counterexample found.</strong> ${c.why(n)}`;
+        }
+        go.disabled = false; go.textContent = '↻ Hunt again';
+      };
+      step();
+    };
+
+    root.querySelectorAll<HTMLButtonElement>('[data-hunt-claim]').forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll('[data-hunt-claim]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true'); key = b.dataset.huntClaim!; reset();
+    }));
+    go.addEventListener('click', hunt);
+    reset();
+  });
+</script>

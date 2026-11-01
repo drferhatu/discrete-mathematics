@@ -1,0 +1,123 @@
+---
+/**
+ * Four-panel comic: an engineer, a physicist, a programmer and a mathematician test the claim
+ * "every odd number greater than 1 is prime". Speech bubbles are HTML (so they wrap); the scenes are SVG
+ * drawn with the theme colours, so the strip works in light and dark mode.
+ */
+type Who = 'engineer' | 'physicist' | 'programmer' | 'mathematician';
+
+// One standing figure, feet at y = 150, facing right.
+function person(x: number, color: string, who: Who) {
+  const ink = 'var(--ink)';
+  const body = `<path d="M${x - 12} 82 Q${x} 75 ${x + 12} 82 L${x + 15} 121 L${x - 15} 121 Z" fill="${color}" stroke="${ink}" stroke-width="1.6" stroke-linejoin="round"/>`;
+  const legs = `<path d="M${x - 6} 121 L${x - 10} 150 M${x + 6} 121 L${x + 10} 150" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/>`;
+  const armOut = who === 'programmer'
+    ? `<path d="M${x + 9} 90 L${x + 24} 104 L${x + 36} 100" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+    : `<path d="M${x + 9} 90 L${x + 30} 74" stroke="${ink}" stroke-width="2.2" stroke-linecap="round"/>`;
+  const armIn = `<path d="M${x - 9} 90 L${x - 16} 110" stroke="${ink}" stroke-width="2.2" stroke-linecap="round"/>`;
+  const head = `<circle cx="${x}" cy="60" r="15" fill="var(--card)" stroke="${ink}" stroke-width="1.8"/>`;
+  const mouth = who === 'programmer'
+    ? `<path d="M${x + 1} 68 h8" stroke="${ink}" stroke-width="1.5" stroke-linecap="round"/>`
+    : `<path d="M${x} 66 Q${x + 5} 71 ${x + 10} 66" stroke="${ink}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+  const eyes = `<circle cx="${x + 3}" cy="57" r="1.6" fill="${ink}"/><circle cx="${x + 10}" cy="57" r="1.6" fill="${ink}"/>`;
+  let extra = '';
+  if (who === 'engineer') {
+    extra = `<path d="M${x - 16} 53 A16 15 0 0 1 ${x + 16} 53 Z" fill="var(--mod-amber)" stroke="${ink}" stroke-width="1.6"/>` +
+      `<path d="M${x - 20} 53 H${x + 21}" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>` +
+      `<path d="M${x} 39 V49" stroke="${ink}" stroke-width="1.4"/>`;
+  } else if (who === 'physicist') {
+    extra = `<path d="M${x - 13} 50 l-6 -9 M${x - 7} 46 l-2 -11 M${x} 45 l2 -11 M${x + 7} 46 l6 -9" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/>` +
+      `<circle cx="${x + 3}" cy="57" r="4.5" fill="none" stroke="var(--mod-teal)" stroke-width="2"/><circle cx="${x + 11}" cy="57" r="4.5" fill="none" stroke="var(--mod-teal)" stroke-width="2"/>` +
+      `<path d="M${x - 12} 82 L${x - 4} 121 M${x + 12} 82 L${x + 4} 121" stroke="var(--card)" stroke-width="2.5"/>`;
+  } else if (who === 'programmer') {
+    extra = `<path d="M${x - 17} 66 Q${x - 19} 40 ${x} 41 Q${x + 18} 41 ${x + 17} 56" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round"/>` +
+      `<path d="M${x - 2} 71 l-3 3" stroke="${ink}" stroke-width="1.2"/>`;
+  } else {
+    extra = `<path d="M${x - 14} 53 Q${x - 4} 40 ${x + 6} 46" fill="none" stroke="${ink}" stroke-width="1.6"/>` +
+      `<rect x="${x - 1}" y="53.5" width="8" height="6.5" rx="2" fill="none" stroke="${ink}" stroke-width="1.4"/><rect x="${x + 8}" y="53.5" width="8" height="6.5" rx="2" fill="none" stroke="${ink}" stroke-width="1.4"/>` +
+      `<path d="M${x + 7} 56.5 h1" stroke="${ink}" stroke-width="1.4"/>` +
+      `<rect x="${x + 29}" y="69" width="7" height="3.5" rx="1" transform="rotate(-35 ${x + 32} 71)" fill="var(--paper)" stroke="${ink}" stroke-width="1"/>`;
+  }
+  return body + legs + armIn + armOut + head + eyes + mouth + extra;
+}
+
+// A small blackboard (or a laptop screen) with lines of mono text: [text, colour].
+function board(lines: [string, string][], kind: 'board' | 'laptop' = 'board') {
+  const text = lines.map(([t, c], i) =>
+    `<text x="${kind === 'laptop' ? 114 : 108}" y="${(kind === 'laptop' ? 60 : 45) + i * 13}" font-family="var(--font-mono)" font-size="10" fill="${c}">${t}</text>`).join('');
+  if (kind === 'laptop') {
+    return `<rect x="106" y="42" width="88" height="66" rx="5" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="1.6"/>` +
+      `<path d="M96 112 H204 L198 120 H102 Z" fill="var(--line-2)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/>` +
+      `<path d="M110 120 V150 M190 120 V150" stroke="var(--line-2)" stroke-width="3"/>` + text;
+  }
+  return `<rect x="100" y="28" width="98" height="94" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="1.6"/>` +
+    `<path d="M115 122 L108 150 M183 122 L190 150" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"/>` + text;
+}
+
+const ok = 'var(--true)', bad = 'var(--false)', ink = 'var(--ink-2)', warn = 'var(--mod-amber)';
+const panels: { who: Who; name: string; color: string; say: string; scene: string; tag?: string }[] = [
+  {
+    who: 'engineer', name: 'The engineer', color: 'var(--mod-amber)',
+    say: '3 is prime. 5 is prime. 7 is prime. Three out of three! All odd numbers are prime. Ship it.',
+    scene: board([['3  prime ✓', ok], ['5  prime ✓', ok], ['7  prime ✓', ok], ['', ink], ['∴ ALL odd', warn], ['  are prime!', warn]]),
+  },
+  {
+    who: 'physicist', name: 'The physicist', color: 'var(--card)',
+    say: '3, 5, 7: prime. 9: hmm, probably a measurement error. 11, 13: prime. The data clearly fits!',
+    scene: board([['3  ✓   5  ✓', ok], ['7  ✓', ok], ['9  ?? noise', warn], ['11 ✓  13 ✓', ok], ['', ink], ['fits! r²≈1', ink]]),
+  },
+  {
+    who: 'programmer', name: 'The programmer', color: 'var(--mod-indigo)',
+    say: 'Let me write a quick test loop… 1 is prime. 1 is prime. 1 is prime. 1 is prime…',
+    scene: board([['1 is prime', ok], ['1 is prime', ok], ['1 is prime', ok], ['1 is prime…', ok]], 'laptop'),
+  },
+  {
+    who: 'mathematician', name: 'The mathematician', color: 'var(--mod-violet)',
+    say: 'Nine is three times three. One counterexample, and the claim is dead. Case closed.',
+    scene: board([['claim: ∀ odd', ink], ['  n > 1 prime', ink], ['', ink], ['9 = 3 × 3', bad], ['', ink], ['FALSE.   ∎', bad]]),
+  },
+];
+---
+<figure class="comic not-prose my-10" aria-label="Comic strip: four people test the claim that every odd number greater than 1 is prime">
+  <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+    <p class="font-display text-2xl leading-tight text-ink">Is every odd number greater than 1 prime?</p>
+    <span class="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">a comic in four panels</span>
+  </div>
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    {panels.map((p, i) => (
+      <div class="comic-panel flex min-w-0 flex-col rounded-xl border-2 border-ink bg-card p-3">
+        <div class="comic-bubble relative rounded-2xl border-[1.5px] border-ink bg-paper px-3 py-2 text-[13.5px] leading-snug text-ink">
+          {p.say}
+        </div>
+        <svg viewBox="0 0 210 160" class="mt-3 w-full" role="img" aria-label={`${p.name} in front of ${p.who === 'programmer' ? 'a laptop' : 'a board'}`}>
+          <path d="M6 150 H204" stroke="var(--line-2)" stroke-width="1.5" />
+          <g set:html={p.scene} />
+          <g set:html={person(52, p.color, p.who)} />
+        </svg>
+        <p class="mt-1 flex items-center justify-between font-mono text-[11px] text-ink-3">
+          <span>{p.name}</span><span>{i + 1}/4</span>
+        </p>
+      </div>
+    ))}
+  </div>
+  <figcaption class="mt-4 rounded-xl border border-line bg-paper-2/60 px-4 py-3 text-[14.5px] leading-relaxed text-ink-2">
+    <strong class="text-ink">The moral.</strong> Examples can make you <em>confident</em>, but only a proof makes you <em>certain</em>.
+    And to knock down a claim about <em>all</em> numbers, one well-chosen counterexample is enough. (The programmer’s loop, by the way, forgot to increase its counter: a bug that no number of passing runs would reveal.)
+  </figcaption>
+</figure>
+
+<style>
+  .comic-bubble::after {
+    content: '';
+    position: absolute;
+    left: 38px;
+    bottom: -9px;
+    width: 16px;
+    height: 16px;
+    background: var(--paper);
+    border-right: 1.5px solid var(--ink);
+    border-bottom: 1.5px solid var(--ink);
+    transform: rotate(45deg) skew(8deg, 8deg);
+  }
+  .comic-panel { box-shadow: 3px 3px 0 var(--line-2); }
+</style>

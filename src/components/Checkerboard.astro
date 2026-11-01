@@ -1,0 +1,39 @@
+---
+/**
+ * The three tiling boards from the proofs lecture: the full 8×8 board, one corner removed, and two
+ * opposite corners removed. Removed squares are drawn with a dashed outline and a cross.
+ */
+const boards = [
+  { title: 'Full board', note: '64 squares: 32 dark, 32 light', removed: [] as number[][] },
+  { title: 'One corner removed', note: '63 squares: an odd number', removed: [[0, 0]] },
+  { title: 'Opposite corners removed', note: '62 squares: 30 dark, 32 light', removed: [[0, 0], [7, 7]] },
+];
+const S = 20;
+const gone = (b: number[][], r: number, c: number) => b.some(([x, y]) => x === r && y === c);
+---
+<figure class="not-prose my-8">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    {boards.map((b) => (
+      <div class="min-w-0 text-center">
+        <svg viewBox={`0 0 ${8 * S + 4} ${8 * S + 4}`} class="mx-auto w-full max-w-[180px]" role="img" aria-label={`${b.title}: ${b.note}`}>
+          <g transform="translate(2 2)">
+            {Array.from({ length: 64 }, (_, i) => {
+              const r = Math.floor(i / 8), c = i % 8;
+              const x = c * S, y = r * S;
+              return gone(b.removed, r, c)
+                ? <g>
+                    <rect x={x + 1} y={y + 1} width={S - 2} height={S - 2} fill="none" stroke="var(--false)" stroke-dasharray="3 2" />
+                    <path d={`M${x + 5} ${y + 5} L${x + S - 5} ${y + S - 5} M${x + S - 5} ${y + 5} L${x + 5} ${y + S - 5}`} stroke="var(--false)" stroke-width="1.6" />
+                  </g>
+                : <rect x={x} y={y} width={S} height={S} fill={(r + c) % 2 === 0 ? '#3c3e4b' : '#f1efe8'} />;
+            })}
+            <rect x="0" y="0" width={8 * S} height={8 * S} fill="none" stroke="var(--ink)" stroke-width="1.5" />
+          </g>
+        </svg>
+        <p class="mt-2 text-sm font-semibold text-ink">{b.title}</p>
+        <p class="font-mono text-[11.5px] text-ink-3">{b.note}</p>
+      </div>
+    ))}
+  </div>
+  <figcaption class="mt-3 text-center text-[13px] text-ink-3">A domino covers two neighbouring squares, and two neighbouring squares always have different colours.</figcaption>
+</figure>

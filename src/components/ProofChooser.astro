@@ -1,0 +1,111 @@
+---
+/**
+ * "Which proof technique?": pick what the statement looks like, see the technique to try first,
+ * the signals that point to it, a fill-in-the-blanks skeleton and a link to the worked example on the page.
+ */
+interface Props { id?: string; }
+const { id = 'chooser' } = Astro.props;
+const shapes = [
+  {
+    shape: 'If p, then q', hint: 'and p gives you something to work with',
+    tech: 'Direct proof', color: 'var(--mod-indigo)', anchor: '#direct-proof',
+    signals: 'The hypothesis can be unpacked with a definition: “n is odd” becomes n = 2k + 1, “r is rational” becomes r = a/b. Always try this first.',
+    skeleton: ['Assume p.', 'Unpack p with its definition.', 'Calculate or reason, one justified step at a time …', 'Repack the result into the definition of q.', 'Therefore q.'],
+  },
+  {
+    shape: 'If p, then q', hint: 'but p is awkward and ¬q is easy',
+    tech: 'Proof by contraposition', color: 'var(--mod-teal)', anchor: '#proof-by-contraposition',
+    signals: 'The hypothesis is about a complicated expression (“n² is odd”, “3n + 2 is odd”) while the conclusion is about something simple (“n is odd”). Negating the conclusion hands you a definition to unpack.',
+    skeleton: ['We prove the contrapositive, ¬q → ¬p.', 'Assume ¬q.', 'Unpack ¬q with its definition …', 'Therefore ¬p.', 'Since ¬q → ¬p ≡ p → q, the statement is proved.'],
+  },
+  {
+    shape: 'There is no …  /  … is irrational  /  there are infinitely many …', hint: 'a negative or “impossible” statement',
+    tech: 'Proof by contradiction', color: 'var(--mod-rose)', anchor: '#proof-by-contradiction',
+    signals: 'The statement says something does not exist or cannot happen. There is nothing to unpack, but assuming the opposite gives you an object to play with.',
+    skeleton: ['Suppose, for the sake of contradiction, that the statement is false.', 'Write down what that gives you (an object, an equation, a finite list …).', 'Reason until two statements clash: r and ¬r.', 'This is impossible, so the assumption was wrong.', 'Therefore the statement is true.'],
+  },
+  {
+    shape: 'p if and only if q', hint: 'p ↔ q, “exactly when”, “iff”',
+    tech: 'Two directions', color: 'var(--mod-violet)', anchor: '#if-and-only-if-two-proofs-in-one',
+    signals: 'A biconditional is two conditionals glued together. Prove each one separately, and feel free to use a different technique for each direction.',
+    skeleton: ['(→) Assume p. … Therefore q.', '(←) Assume q. … Therefore p.', 'Both directions hold, so p ↔ q.'],
+  },
+  {
+    shape: 'For every integer n …', hint: 'and n behaves differently in different situations',
+    tech: 'Proof by cases', color: 'var(--mod-amber)', anchor: '#proof-by-cases',
+    signals: 'The objects fall naturally into a few groups: even or odd, positive or negative, a ≥ b or a < b. Each group is easy on its own.',
+    skeleton: ['Every n falls into one of these cases: …, …, … (no case left out!).', 'Case 1: … therefore the statement holds.', 'Case 2: … therefore the statement holds.', 'The cases cover everything, so the statement holds for every n.'],
+  },
+  {
+    shape: 'For every n in a small, finite set', hint: 'e.g. “for n = 1, 2, 3, 4”',
+    tech: 'Exhaustive proof', color: 'var(--mod-emerald)', anchor: '#exhaustive-proof',
+    signals: 'There are only a handful of cases. Check every one of them, by hand or by computer. This is the only situation in which “I tried all the examples” is a proof.',
+    skeleton: ['List every element of the domain.', 'Check the statement for each one (a table is ideal).', 'All cases pass, so the statement holds.'],
+  },
+  {
+    shape: 'There exists an x such that …', hint: '∃x P(x)',
+    tech: 'Existence proof', color: 'var(--brand)', anchor: '#existence-proofs-show-me-one',
+    signals: 'You only need one witness. Try to construct it explicitly (constructive). If you cannot, show that it must exist without pointing to it (nonconstructive).',
+    skeleton: ['Let x = … (a specific value).', 'Check that P(x) holds.', 'By existential generalization, ∃x P(x).'],
+  },
+  {
+    shape: 'For every x …', hint: 'but you suspect it is false',
+    tech: 'Counterexample', color: 'var(--false)', anchor: '#counterexamples-one-is-enough',
+    signals: 'Try small cases, edge cases (0, 1, negative numbers, the empty set) and let a computer search. One x that fails is a complete disproof.',
+    skeleton: ['Let x = … (a specific value).', 'Show that P(x) is false.', 'Therefore ¬∀x P(x), i.e. ∃x ¬P(x): the claim is false.'],
+  },
+];
+---
+<div class="chooser card my-8 overflow-hidden shadow-soft" data-choose id={id}>
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">which technique? · click what your statement looks like</span>
+  </div>
+  <div class="grid grid-cols-1 gap-0 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+    <ul class="chooser-list m-0 list-none space-y-1 border-b border-line p-3 md:border-b-0 md:border-r">
+      {shapes.map((s, i) => (
+        <li class="m-0 p-0">
+          <button type="button" data-choose-i={i} aria-pressed={i === 0 ? 'true' : 'false'}
+            class="choose-btn w-full rounded-lg border border-transparent px-3 py-2 text-left">
+            <span class="block font-mono text-[12.5px] text-ink">{s.shape}</span>
+            <span class="block text-[12px] text-ink-3">{s.hint}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+    <div class="min-w-0 p-4 sm:p-5">
+      {shapes.map((s, i) => (
+        <div data-choose-panel={i} class={i === 0 ? '' : 'hidden'}>
+          <p class="eyebrow">Try first</p>
+          <p class="mt-1 font-display text-3xl leading-tight" style={`color: ${s.color}`}>{s.tech}</p>
+          <p class="mt-3 text-[14.5px] leading-relaxed text-ink-2"><strong class="text-ink">Signals.</strong> {s.signals}</p>
+          <p class="eyebrow mt-4">Skeleton</p>
+          <ol class="chooser-skel mt-2 space-y-1 rounded-lg border border-line bg-paper px-4 py-3 font-mono text-[12.5px] leading-relaxed text-ink">
+            {s.skeleton.map((line) => <li>{line}</li>)}
+          </ol>
+          <a href={s.anchor} class="mt-3 inline-block text-sm font-semibold text-brand hover:underline">See the worked example ↓</a>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .chooser .choose-btn:hover { border-color: var(--line-2); }
+  .chooser .choose-btn[aria-pressed='true'] { border-color: var(--brand); background: var(--brand-soft); }
+  .prose-lesson .chooser ul.chooser-list { list-style: none; padding: 0.75rem; }
+  .prose-lesson .chooser ul.chooser-list > li + li { margin-top: 0.25rem; }
+  .prose-lesson .chooser ol.chooser-skel { list-style: decimal; padding-left: 2rem; margin-bottom: 0; }
+  .prose-lesson .chooser ol.chooser-skel li { margin: 0; padding-left: 0.2rem; }
+  .prose-lesson .chooser a { text-decoration: none; }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-choose]').forEach((root) => {
+    const btns = root.querySelectorAll<HTMLButtonElement>('[data-choose-i]');
+    const panels = root.querySelectorAll<HTMLElement>('[data-choose-panel]');
+    btns.forEach((b) => b.addEventListener('click', () => {
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      panels.forEach((p) => p.classList.toggle('hidden', p.dataset.choosePanel !== b.dataset.chooseI));
+    }));
+  });
+</script>
