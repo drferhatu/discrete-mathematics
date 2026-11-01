@@ -1,0 +1,265 @@
+---
+lab: 6
+week: 7
+title: "Counterexample Hunting"
+description: "Write a fast prime test, build the tools of a counterexample hunter, turn famous claims into Python functions and break them one by one, construct the taxicab number, and meet a problem that nobody has solved."
+assignment: lab06
+mode: classroom50
+status: open
+duration: "75 min + finish at home"
+points: 100
+files: ["hunt.py"]
+topics: ["primes", "counterexamples", "exhaustive proof", "existence proofs", "Collatz"]
+notebook: { file: "labs/templates/lab06/lab06.ipynb", title: "Lab 6 · Explore: evidence, patterns and proof" }
+---
+
+## Goal
+
+In the week 7 notes, four people in a comic strip tested the claim that every odd number is prime, and only one of them did it properly. This week you become the fourth one, with a computer at your side. You will write the tools a counterexample hunter needs, turn famous claims from the history of mathematics into Python functions, and watch them fall: Euler's prime polynomial, Fermat's numbers, the three-squares claim and Goldbach's forgotten second conjecture. You will also **construct** objects whose existence a claim promises, and end with a problem that is still open.
+
+Keep one question in mind the whole time: **what has my program actually proved, and what has it only checked?**
+
+Everything happens in one file, `hunt.py`. The functions build on each other, so please work through them **in order**, and run `python check.py` after each step.
+
+> [!note] You can start without the instructor
+> Every step below says what the function should do, shows an example with its expected result, and gives a hint about how to write it. Ask your neighbour first, then the instructor. If a step blocks you for more than ten minutes, note the error message and move on to the next one.
+
+## Steps
+
+<Step n={1} title="Accept Lab 6 and open it" time="3 min" id="accept">
+
+Click the orange **Accept lab lab06** button at the top of this page and then **Accept assignment**. When the checklist finishes, click **Open repository**. Then open the repository with the green **Code** button → **Codespaces** → **Create codespace on main**.
+
+You may also work on your own computer or in another editor; see [Other ways to work and submit](#other-ways-to-work-and-submit).
+
+</Step>
+
+<Step n={2} title="How a claim looks in Python" time="5 min" id="look">
+
+Open `hunt.py` and read the comment at the top. The whole lab rests on one simple idea: a **claim about integers is a function** that takes an integer and returns `True` or `False`. The claim “$n^2 + n$ is even” becomes
+
+```python
+lambda n: (n * n + n) % 2 == 0
+```
+
+A **counterexample** is any `n` for which the function returns `False`. A claim “for every $n$” is false exactly when such an `n` exists. This is the rule $\neg \forall n\, P(n) \equiv \exists n\, \neg P(n)$ from week 4, in code.
+
+Run the checks once before you write anything. None of them will pass yet.
+
+<Terminal cmd="python check.py" out={`:| is_prime agrees with a sieve for every n from -5 to 3000
+    not implemented yet (still raises NotImplementedError)
+...
+0/18 checks passed`} />
+
+</Step>
+
+<Step n={3} title="Part A: a fast prime test" time="10 min" id="primes">
+
+Almost every famous claim in this lab is about primes, so we start with a good prime test.
+
+**`is_prime(n)`** returns `True` when `n` is prime. Numbers below 2 (including 0, 1 and negative numbers) are **not** prime. For larger `n`, try every divisor `d` from 2 upwards; if one of them divides `n` evenly (`n % d == 0`), then `n` is not prime.
+
+The important part is **where to stop**. In the notes we proved by contraposition that if $n = ab$, then $a \le \sqrt{n}$ or $b \le \sqrt{n}$. So if `n` has any divisor at all, it has one no larger than $\sqrt{n}$, and you only need to try `d` up to `isqrt(n)` (already imported for you). `range(2, isqrt(n) + 1)` is exactly the right range.
+
+```python
+is_prime(2)     # True
+is_prime(1)     # False
+is_prime(91)    # False: 91 = 7 × 13
+```
+
+One of the checks times your function on the prime $100\,000\,007$. With the square-root bound it tries about 10,000 divisors; without it, about 100 million, and the check fails. This is the theorem from the notes, doing real work.
+
+**`smallest_factor(n)`**, for $n \ge 2$, returns the smallest divisor of `n` greater than 1. It is almost the same loop: return the first `d` that divides `n`. If no `d` up to `isqrt(n)` divides it, `n` is prime and its smallest factor is `n` itself.
+
+```python
+smallest_factor(1681)   # 41, because 1681 = 41 × 41
+```
+
+</Step>
+
+<Step n={4} title="Part B: the first counterexample" time="8 min" id="first">
+
+**`first_counterexample(prop, start, stop)`** goes through `range(start, stop)` in order and returns the **first** `n` for which `prop(n)` is `False`. If every `n` in the range passes, it returns `None`.
+
+```python
+first_counterexample(lambda n: n < 10, 0, 100)   # 10
+first_counterexample(lambda n: n < 10, 0, 5)     # None: 0, 1, 2, 3, 4 all pass
+```
+
+Return **as soon as** you find a counterexample. One of the checks gives you a claim that crashes if you call it on any number after the first counterexample, to make sure your hunter does not keep searching once the job is done.
+
+</Step>
+
+<Step n={5} title="Part B: exhaustive proofs and streaks" time="10 min" id="exhaustive">
+
+**`holds_for_all(prop, start, stop)`** returns `True` when `prop(n)` holds for **every** `n` in `range(start, stop)`. You already have the perfect helper: the claim holds for all of them exactly when there is no counterexample. This makes it a one-liner.
+
+On a finite range, `holds_for_all` is an **exhaustive proof**, the one situation where checking every case is a real proof. The example from the notes:
+
+```python
+ineq = lambda n: (n + 1) ** 3 >= 3 ** n
+holds_for_all(ineq, 1, 5)    # True:  n = 1, 2, 3, 4 are all checked, so this is a proof for those n
+holds_for_all(ineq, 1, 6)    # False: n = 5 fails
+```
+
+Notice that on an **empty** range, for example `holds_for_all(prop, 3, 3)`, the answer is `True`. There is nothing to check, so nothing can fail. This is the vacuous truth from the notes, and Python's `all([])` agrees.
+
+**`streak(prop, start=0, limit=10_000)`** measures how long a pattern lasts: how many values in a row, starting at `start`, pass the claim before the first failure. Count upwards from `start` while the claim keeps holding. Never look at more than `limit` values; if all of them pass, return `limit`.
+
+```python
+streak(lambda n: n < 10)                            # 10: n = 0, 1, …, 9 pass, n = 10 fails
+streak(lambda n: (n + 1) ** 3 >= 3 ** n, start=1)   # 4
+```
+
+A `while` loop with two conditions, one for the count and one for the claim, is the cleanest way to write it.
+
+</Step>
+
+<Step n={6} title="Part C: Euler and Fermat" time="7 min" id="euler-fermat">
+
+Now we write famous claims as functions. Each one answers the claim **for a single `n`**; the hunting is done by the tools from Part B.
+
+**`euler_poly(n)`** answers: is $n^2 + n + 41$ prime? **`fermat(n)`** answers: is $2^{2^n} + 1$ prime? In Python, $2^{2^n}$ is `2 ** (2 ** n)`. Both are one line, using your `is_prime`.
+
+Then go hunting, either in a Python shell or with `python hunt.py`:
+
+```python
+streak(euler_poly)                         # 40: prime forty times in a row
+first_counterexample(euler_poly, 0, 1000)  # 40
+first_counterexample(fermat, 0, 6)         # 5: 2^32 + 1 = 4,294,967,297 = 641 × 6,700,417
+```
+
+Fermat believed in 1640 that all these numbers are prime. Euler found the factor 641 in 1732. Your computer finds it in a fraction of a second, because of the square-root bound in `is_prime`. (Do not try `fermat(6)`: $2^{64} + 1$ has twenty digits, and trial division would take hours.)
+
+</Step>
+
+<Step n={7} title="Part C: three squares" time="10 min" id="squares">
+
+**`three_squares(n)`** answers: can $n$ be written as $a^2 + b^2 + c^2$ with non-negative integers $a, b, c$? Zero is allowed and so are repetitions, so $3 = 1 + 1 + 1$ and $0 = 0 + 0 + 0$ both count.
+
+A good way to search is with two loops and a test. Let `a` run from 0 to `isqrt(n)`, and `b` from `a` to `isqrt(n - a*a)`. What is left, `c2 = n - a*a - b*b`, must be a perfect square, which you can test with `isqrt(c2) ** 2 == c2`. If you find such a pair, return `True`; if the loops finish, return `False`.
+
+```python
+three_squares(6)    # True:  4 + 1 + 1
+three_squares(7)    # False
+first_counterexample(three_squares, 0, 100)    # 7, the counterexample from the slides
+```
+
+> [!tip] Look at all the counterexamples
+> Try `[n for n in range(100) if not three_squares(n)]`. You get 7, 15, 23, 28, 31, … There is a beautiful pattern: they are exactly the numbers of the form $4^a(8b + 7)$. Legendre found it in 1798 and Gauss completed the proof in 1801. That is the step from **evidence** to **theorem**.
+
+</Step>
+
+<Step n={8} title="Part C: Goldbach's other conjecture" time="10 min" id="goldbach-other">
+
+In 1752 Christian Goldbach claimed that every **odd composite** number is a prime plus twice a square:
+
+$$
+9 = 7 + 2 \cdot 1^2, \qquad 15 = 7 + 2 \cdot 2^2, \qquad 21 = 3 + 2 \cdot 3^2, \qquad \dots
+$$
+
+**`goldbach_other(n)`** checks the claim for one `n`. Read the docstring carefully, because there are two parts:
+
+1. The claim only talks about odd composite numbers. For any other `n` (even, prime, or smaller than 9) it says nothing, so it cannot be broken there: return `True`. This is a **vacuous truth**, just like the unicorns in the notes.
+2. For an odd composite `n`, try $k = 1, 2, 3, \dots$ while $2k^2 < n$. If `n - 2*k*k` is prime for one of them, return `True`. If none works, return `False`.
+
+```python
+goldbach_other(15)     # True: 15 = 7 + 2·2²
+first_counterexample(goldbach_other, 1, 10_000)    # ?
+```
+
+Run the hunt and see for yourself. The claim survived for over a century, until Moritz Stern and his students found the counterexample by hand in 1856. It took them a long time; it takes your program a few milliseconds.
+
+</Step>
+
+<Step n={9} title="Part D: existence proofs by construction" time="12 min" id="existence">
+
+A statement “there exists …” is proved most convincingly by **constructing** the object. In this part your program constructs witnesses.
+
+**`goldbach_pair(n)`**: Goldbach's famous conjecture says that every even $n > 2$ is the sum of two primes. Return the pair `(p, q)` of primes with `p + q == n`, choosing `p` as **small** as possible. Try `p = 2, 3, 4, …` up to `n // 2` and return the first `p` for which both `p` and `n - p` are prime. For an odd `n` or `n <= 2`, return `None`.
+
+```python
+goldbach_pair(28)     # (5, 23)
+goldbach_pair(100)    # (3, 97)
+```
+
+Each pair is a constructive existence proof for **one** even number. `python hunt.py` checks all even numbers up to 10,000 with your `holds_for_all`. Computers have done this up to $4 \times 10^{18}$. But a proof for **every** even number is still missing, and that is why it is still called a conjecture.
+
+**`two_ways_cubes(limit, start=1)`** finds the smallest number between `start` and `limit` that is a sum of two positive cubes in **two different ways**. Count the ways in a dictionary: for every pair $1 \le a \le b$ with $a^3 + b^3 \le$ `limit`, add one to `ways[a**3 + b**3]` (only for sums that are at least `start`). Then return the smallest sum with at least two ways, or `None`.
+
+```python
+two_ways_cubes(2000)               # 1729 = 1³ + 12³ = 9³ + 10³
+two_ways_cubes(5000, start=1730)   # 4104 = 2³ + 16³ = 9³ + 15³
+```
+
+That is Ramanujan's taxicab number from the notes, found by your own constructive existence proof.
+
+</Step>
+
+<Step n={10} title="Part E: an open problem" time="7 min" id="collatz">
+
+The last function is short, but it touches one of the most famous unsolved problems in mathematics.
+
+**The Collatz rule:** if $n$ is even, replace it by $n/2$; if it is odd, replace it by $3n + 1$. Starting from 6:
+
+$$
+6 \to 3 \to 10 \to 5 \to 16 \to 8 \to 4 \to 2 \to 1.
+$$
+
+**`collatz_steps(n)`** returns how many steps it takes to reach 1 (8 steps for 6, and 0 for 1 itself). A `while n != 1` loop with a step counter is all you need. Use `n // 2`, not `n / 2`, so that `n` stays an integer.
+
+```python
+collatz_steps(27)    # 111, and on the way it climbs as high as 9,232
+```
+
+Every starting number ever tried reaches 1, and computers have tried every number up to about $3 \times 10^{20}$. Yet nobody has been able to **prove** that every number reaches 1. Your loop assumes it does: if some number never reached 1, `collatz_steps` would run forever. That is a program whose correctness depends on an unproved conjecture.
+
+</Step>
+
+<Step n={11} title="Submit" time="1 min" id="submit">
+
+When `python check.py` reports `18/18 checks passed`, or when you have done as much as you can, push your work. **Every push is graded out of 100.**
+
+<Terminal lines={['git add -A', 'git commit -m "Lab 6"', 'git push']} />
+
+About two minutes later your score appears under **Releases** on your repository page. Your last push before **Friday 23:59** is the one that counts.
+
+</Step>
+
+## Other ways to work and submit
+
+You do not have to use Codespaces or a terminal.
+
+**Work anywhere:** on your own computer (download the repository with **Code → Download ZIP**, then run `pip install pytest` and `python check.py`), on [cs50.dev](https://cs50.dev), in Google Colab, or in [github.dev](https://github.dev) by pressing <span class="kbd">.</span> on your repository page.
+
+**Submit from the browser:** open `hunt.py` in your repository on github.com, click the pencil icon ✎, select everything and paste your **whole** file, then click **Commit changes**. Alternatively, use **Add file → Upload files** and drag your `hunt.py` in. Keep the file name exactly `hunt.py`. Every commit is graded in the same way as a push.
+
+## Explore: the notebook
+
+The notebook draws the **Ulam spiral**, in which primes line up on diagonals and Euler's polynomial shows up as one long prime-rich line. It plots **Goldbach's comet**, the strongest visual evidence that Goldbach's conjecture is true, and the wild **Collatz** sequences. It finishes with a **tiny property-based tester**: it hunts for a counterexample to a claim about sorting lists and then shrinks it to the smallest one, as professional testing tools do.
+
+<NotebookEmbed file="labs/templates/lab06/lab06.ipynb" title="Lab 6 · Explore notebook" />
+
+## Challenges (optional, not graded)
+
+1. **Longest streak.** Among the polynomials $n^2 + n + c$ for $c = 1, \dots, 100$, which one has the longest prime streak starting at $n = 0$? Use `streak`. (You should rediscover 41, and one or two other surprises.)
+2. **Explain the counterexample.** Write `why_not_prime(n)`, which returns a string such as `"1681 = 41 × 41"` using `smallest_factor`, and use it to print the first five failures of `euler_poly`.
+3. **The Collatz record holders.** Below 10,000, which starting number needs the most steps? Which one climbs the highest?
+4. **Sum of powers.** In 1966 a computer search found $27^5 + 84^5 + 110^5 + 133^5 = 144^5$. Check it in one line of Python, and then think about how you would have searched for it.
+
+## Troubleshooting
+
+> [!note] The “is_prime is too slow” check fails
+> Your loop goes all the way to `n` (or `n // 2`). Stop at `isqrt(n)`: `for d in range(2, isqrt(n) + 1)`.
+
+> [!note] `is_prime(1)` returns `True`
+> 1 is not prime: a prime has exactly two divisors, 1 and itself. Handle `n < 2` before the loop.
+
+> [!note] `three_squares(0)` or `three_squares(1)` returns `False`
+> Your loops probably start at 1. Squares of 0 are allowed: start `a` and `b` at 0.
+
+> [!note] `goldbach_other(13)` returns `False`
+> 13 is prime, so the claim says nothing about it: return `True` before you start searching.
+
+> [!note] `collatz_steps` never finishes
+> Check that the loop changes `n` on every step, and that you wrote `n // 2` (integer division) and `3 * n + 1`.

@@ -562,12 +562,162 @@ md("""> Notice how each rule became a clause: $r \\to p$ is $\\neg r \\lor p$, a
 3. Use `resolve_all` to check the debugging argument from the notes: `a ∨ d`, `d → f`, `¬f`, therefore `a`."""),
 ]
 
+# ---------------------------------------------------------------------------
+# LAB 6 · Evidence, patterns and proof
+# ---------------------------------------------------------------------------
+LAB06 = [
+md("""# Lab 6 · Explore: evidence, patterns and proof
+
+**Discrete Mathematics (YMT211)** · Fall 2026
+
+The playground half of Lab 6. Nothing here is graded. We look at famous patterns in pictures: where Euler's prime
+polynomial hides in a spiral, why mathematicians believe Goldbach's conjecture without a proof, how wild the Collatz
+sequences are, and how a modern testing tool hunts for counterexamples in your own code."""),
+md("""## 1 · The Ulam spiral
+
+Write 1, 2, 3, … in a square spiral and mark the primes. The mathematician Stanisław Ulam did this in 1963, doodling
+during a boring talk, and noticed that primes like to sit on **diagonal lines**. Some of those diagonals are values of
+quadratic polynomials, and Euler's $n^2 + n + 41$ produces one of the longest prime-rich diagonals of all."""),
+code("""from math import isqrt
+import matplotlib.pyplot as plt
+
+def is_prime(n):
+    if n < 2:
+        return False
+    return all(n % d for d in range(2, isqrt(n) + 1))
+
+def spiral(count):
+    x = y = 0
+    dx, dy = 1, 0
+    pos, step, n = {}, 1, 1
+    while n <= count:
+        for _ in range(2):
+            for _ in range(step):
+                if n > count:
+                    break
+                pos[n] = (x, y)
+                x, y, n = x + dx, y + dy, n + 1
+            dx, dy = -dy, dx
+        step += 1
+    return pos
+
+pos = spiral(40_000)
+pts = [pos[n] for n in pos if is_prime(n)]
+fig, ax = plt.subplots(figsize=(7, 7))
+ax.scatter(*zip(*pts), s=0.6, color="#3a39d0")
+ax.set_aspect("equal"); ax.set_axis_off(); ax.set_title("Primes up to 40,000 on the Ulam spiral")
+plt.show()"""),
+md("""Now start the spiral at 41 instead of 1 and colour the values of $n^2 + n + 41$. They line up on one diagonal,
+and the first forty of them are all prime."""),
+code("""start = 41
+pos = spiral(3000)
+euler = {n * n + n + 41 for n in range(60)}
+fig, ax = plt.subplots(figsize=(6, 6))
+ax.scatter(*zip(*[pos[k] for k in pos if is_prime(k + start - 1)]), s=6, color="#c9c6bb", label="prime")
+ax.scatter(*zip(*[pos[k] for k in pos if (k + start - 1) in euler and is_prime(k + start - 1)]), s=18, color="#0e8a63", label="n²+n+41, prime")
+ax.scatter(*zip(*[pos[k] for k in pos if (k + start - 1) in euler and not is_prime(k + start - 1)]), s=40, color="#d83a3f", marker="x", label="n²+n+41, NOT prime")
+ax.set_aspect("equal"); ax.set_axis_off(); ax.legend(loc="lower left", fontsize=8)
+plt.show()"""),
+md("""## 2 · Goldbach's comet
+
+Goldbach's conjecture says every even number $n > 2$ is a sum of two primes. For each even $n$, count **how many**
+ways there are. If the conjecture were in danger, some counts would be creeping down towards 0. Instead they grow,
+in a beautiful band called **Goldbach's comet**. This is strong evidence, and it is why almost every mathematician
+believes the conjecture. It is still not a proof."""),
+code("""N = 20_000
+P = [is_prime(k) for k in range(N + 1)]
+evens = list(range(4, N + 1, 2))
+ways = [sum(1 for p in range(2, n // 2 + 1) if P[p] and P[n - p]) for n in evens]
+
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.scatter(evens, ways, s=0.4, color="#7a3fc4")
+ax.set_xlabel("even n"); ax.set_ylabel("number of ways n = p + q, p ≤ q")
+ax.set_title("Goldbach's comet")
+plt.show()
+print("smallest number of ways for n > 1000:", min(w for n, w in zip(evens, ways) if n > 1000))"""),
+md("""## 3 · Collatz: simple rule, wild behaviour
+
+Even: halve it. Odd: $3n + 1$. Starting from 27, the sequence climbs to 9,232 before it finally falls to 1.
+Computers have checked every starting number up to about $2.95 \\times 10^{20}$; nobody has a proof that they all reach 1."""),
+code("""def collatz(n):
+    seq = [n]
+    while n != 1:
+        n = n // 2 if n % 2 == 0 else 3 * n + 1
+        seq.append(n)
+    return seq
+
+s = collatz(27)
+print(len(s) - 1, "steps, highest value", max(s))
+fig, ax = plt.subplots(figsize=(9, 3.5))
+ax.plot(s, color="#e8560f", lw=1.2)
+ax.set_xlabel("step"); ax.set_title("The Collatz sequence of 27")
+plt.show()"""),
+code("""steps = [len(collatz(n)) - 1 for n in range(1, 10_001)]
+fig, ax = plt.subplots(figsize=(9, 3.5))
+ax.scatter(range(1, 10_001), steps, s=0.4, color="#0c7c77")
+ax.set_xlabel("starting number n"); ax.set_ylabel("steps to reach 1")
+plt.show()"""),
+md("""## 4 · A tiny property-based tester
+
+Tools such as Python's *Hypothesis* test a **property** that should hold for all inputs: they generate random inputs,
+look for a counterexample, and then **shrink** it to the smallest failing input they can find. Here is the idea in a
+few lines. The property below is false; can you see why before running the cell?"""),
+code("""import random
+
+def prop(a, b):
+    # claim: sorting a joined list is the same as joining two sorted lists
+    return sorted(a + b) == sorted(a) + sorted(b)
+
+def shrink(a, b):
+    changed = True
+    while changed:
+        changed = False
+        for lst in (a, b):
+            for i in range(len(lst)):
+                trial = lst[:i] + lst[i + 1:]
+                cand = (trial, b) if lst is a else (a, trial)
+                if not prop(*cand):
+                    a, b = cand
+                    changed = True
+                    break
+            if changed:
+                break
+    return a, b
+
+rng = random.Random(1)
+for attempt in range(1, 1001):
+    a = [rng.randint(0, 9) for _ in range(rng.randint(0, 6))]
+    b = [rng.randint(0, 9) for _ in range(rng.randint(0, 6))]
+    if not prop(a, b):
+        print(f"attempt {attempt}: counterexample a = {a}, b = {b}")
+        print("shrunk to                  :", shrink(a, b))
+        break"""),
+md("""The shrunk counterexample is the kind a programmer can understand at a glance: one number in each list, the larger one in `a`, such as `a = [9], b = [7]`.
+That is exactly what you did by hand with $n^2 + n + 41$: one small, clear case that breaks the claim.
+
+## 5 · Your own code
+
+This cell uses your `hunt.py` (run it in your lab repository after you have written the functions)."""),
+code("""from hunt import streak, first_counterexample, euler_poly, goldbach_other, two_ways_cubes
+
+print("Euler's streak       :", streak(euler_poly))
+print("Goldbach's other     :", first_counterexample(goldbach_other, 1, 10_000))
+print("taxicab numbers      :", [two_ways_cubes(50_000, s) for s in (1, 1730, 4105)])""", skip=True),
+md("""## Your turn
+
+1. In section 1, try the polynomial $n^2 - n + 41$ or $2n^2 + 29$. Do they line up too? How long are their prime streaks?
+2. In section 2, plot only the even numbers that are multiples of 3 (in a different colour). What do you notice?
+3. In section 4, write a property of your own that you think is true for all lists (for example about `reversed`, `max`
+   or `set`). Does the tester find a counterexample?"""),
+]
+
 NOTEBOOKS = {
     "lab01": (ROOT / "labs" / "templates" / "lab01" / "lab01.ipynb", LAB01),
     "lab02": (ROOT / "labs" / "templates" / "lab02" / "lab02.ipynb", LAB02),
     "lab03": (ROOT / "labs" / "templates" / "lab03" / "lab03.ipynb", LAB03),
     "lab04": (ROOT / "labs" / "templates" / "lab04" / "lab04.ipynb", LAB04),
     "lab05": (ROOT / "labs" / "templates" / "lab05" / "lab05.ipynb", LAB05),
+    "lab06": (ROOT / "labs" / "templates" / "lab06" / "lab06.ipynb", LAB06),
 }
 
 SKIP_TAG = "skip-execution"
