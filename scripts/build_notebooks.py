@@ -711,6 +711,157 @@ md("""## Your turn
    or `set`). Does the tester find a counterexample?"""),
 ]
 
+# ---------------------------------------------------------------------------
+# LAB 7 · Sets in pictures
+# ---------------------------------------------------------------------------
+LAB07 = [
+md("""# Lab 7 · Explore: sets in pictures
+
+**Discrete Mathematics (YMT211)** · Fall 2026
+
+The playground half of Lab 7. Nothing here is graded. We draw set identities, watch the power set explode,
+let Jaccard similarity discover groups of listeners nobody told it about, catch a copied paragraph, and see why
+computers love to store sets as bits."""),
+md("""## 1 · Identities you can see
+
+A Venn diagram is a picture of membership: every point of the plane is in or out of each circle. So we can draw any
+set expression by colouring the points that belong to it. Below, De Morgan's law: the two pictures are the same,
+and the wrong version is not."""),
+code("""import numpy as np
+import matplotlib.pyplot as plt
+
+xs, ys = np.meshgrid(np.linspace(-2.2, 2.2, 400), np.linspace(-1.6, 1.6, 300))
+A = (xs + 0.6) ** 2 + ys ** 2 < 1.1 ** 2
+B = (xs - 0.6) ** 2 + ys ** 2 < 1.1 ** 2
+
+def draw(ax, region, title):
+    ax.imshow(region, extent=(-2.2, 2.2, -1.6, 1.6), cmap="Blues", vmin=0, vmax=1.6, origin="lower")
+    for cx in (-0.6, 0.6):
+        ax.add_patch(plt.Circle((cx, 0), 1.1, fill=False, lw=1.5))
+    ax.text(-1.6, 1.2, "A", fontsize=13, weight="bold"); ax.text(1.45, 1.2, "B", fontsize=13, weight="bold")
+    ax.set_title(title); ax.set_axis_off()
+
+fig, axs = plt.subplots(1, 3, figsize=(12, 3.4))
+draw(axs[0], ~(A | B), "(A ∪ B)′")
+draw(axs[1], ~A & ~B, "A′ ∩ B′   (the same!)")
+draw(axs[2], ~A | ~B, "A′ ∪ B′   (a different set)")
+plt.show()"""),
+md("""The arrays `A` and `B` hold one boolean per pixel, and NumPy's `|`, `&` and `~` act on every pixel at once:
+they are exactly ∪, ∩ and complement. The same operators work on Python sets."""),
+md("""## 2 · The power set explodes
+
+Every subset of $\\{0, 1, \\dots, n-1\\}$ is a bit pattern, so the subsets are just the numbers $0, 1, \\dots, 2^n - 1$
+written in binary. That makes listing them easy, and it also shows why it quickly becomes hopeless."""),
+code("""def subsets(n):
+    for mask in range(2 ** n):
+        yield {i for i in range(n) if mask >> i & 1}
+
+print([sorted(s) for s in subsets(3)])
+
+import time
+ns, secs = [], []
+for n in range(10, 21):
+    t = time.perf_counter()
+    for _ in subsets(n):
+        pass
+    ns.append(n); secs.append(time.perf_counter() - t)
+
+fig, ax = plt.subplots(figsize=(8, 3.5))
+ax.plot(ns, secs, "o-", color="#e8560f")
+ax.set_xlabel("n (elements)"); ax.set_ylabel("seconds to list P(S)")
+ax.set_title("Each new element doubles the work")
+plt.show()
+print(f"at this speed, n = 60 would take about {secs[-1] * 2 ** 40 / 3.15e7:,.0f} years")"""),
+md("""## 3 · Jaccard finds the groups
+
+We invent 30 listeners. Each one secretly belongs to one of three taste groups and picks most artists from that
+group's list, plus a few random ones. Then we compute the Jaccard similarity of every pair and draw it as a picture.
+Jaccard is never told about the groups, yet three bright blocks appear."""),
+code("""import random
+rng = random.Random(7)
+groups = {
+    "rock": ["Duman", "Mor ve Ötesi", "Coldplay", "Muse", "Radiohead", "Arctic Monkeys", "Foo Fighters", "Linkin Park"],
+    "pop": ["Tarkan", "Sezen Aksu", "Adele", "Taylor Swift", "Dua Lipa", "Ed Sheeran", "Hande Yener", "Kenan Doğulu"],
+    "electronic": ["Daft Punk", "Avicii", "Deadmau5", "Kygo", "Calvin Harris", "Aphex Twin", "Moby", "Röyksopp"],
+}
+everyone = sorted({a for g in groups.values() for a in g})
+users = {}
+for i in range(30):
+    g = list(groups)[i // 10]
+    users[f"u{i:02d}"] = set(rng.sample(groups[g], 5)) | set(rng.sample(everyone, 2))
+
+def jaccard(a, b):
+    return len(a & b) / len(a | b) if a | b else 1.0
+
+names = list(users)
+M = np.array([[jaccard(users[a], users[b]) for b in names] for a in names])
+fig, ax = plt.subplots(figsize=(5.5, 5))
+im = ax.imshow(M, cmap="viridis")
+ax.set_title("Jaccard similarity of 30 listeners"); ax.set_xticks([]); ax.set_yticks([])
+fig.colorbar(im, shrink=0.8)
+plt.show()"""),
+code("""def recommend(u):
+    best = max((v for v in users if v != u), key=lambda v: jaccard(users[u], users[v]))
+    return best, round(jaccard(users[u], users[best]), 2), sorted(users[best] - users[u])
+
+for u in ["u00", "u15", "u27"]:
+    print(u, "→", recommend(u))"""),
+md("""## 4 · Catching a copied paragraph
+
+A paragraph becomes a set of **shingles**: runs of 3 consecutive words. Small edits change only a few shingles,
+so a lightly reworded copy still shares many of them, while an honest paragraph on the same topic shares almost none."""),
+code("""import re
+
+def shingles(text, k=3):
+    w = re.findall(r"[a-z0-9']+", text.lower())
+    return {tuple(w[i:i + k]) for i in range(len(w) - k + 1)}
+
+texts = {
+    "original": "A set is an unordered collection of distinct objects called elements. Two sets are equal "
+                "when they have exactly the same elements, no matter how they are described.",
+    "reworded": "A set is an unordered collection of different objects called members. Two sets are equal "
+                "when they have exactly the same elements, however they are described.",
+    "honest":   "We say two sets coincide if each element of the first belongs to the second and vice versa; "
+                "order and repetition play no role at all.",
+}
+for k in (1, 2, 3, 4):
+    print(f"k = {k}:", {n: round(jaccard(shingles(texts['original'], k), shingles(t, k)), 2) for n, t in texts.items()})"""),
+md("""With $k = 1$ (single words) the honest paragraph still gets a few points, just because everyone writes *sets*,
+*the* and *of*. From $k = 3$ on it scores exactly 0, while the reworded copy keeps a clear score. Make $k$ too large,
+though, and every small edit breaks many shingles, so even the copy starts to look original. Choosing $k$ is a real
+engineering decision in plagiarism checkers and search engines."""),
+md("""## 5 · Sets as bits are fast
+
+For a small universe, a set can be one Python integer whose bit $i$ says whether $i$ is in the set.
+Then intersection is a single `&` on two integers."""),
+code("""import timeit
+N = 100_000
+A_set = set(range(0, N, 2)); B_set = set(range(0, N, 3))
+A_bits = sum(1 << i for i in A_set); B_bits = sum(1 << i for i in B_set)
+
+t_set = timeit.timeit(lambda: A_set & B_set, number=50) / 50
+t_bits = timeit.timeit(lambda: A_bits & B_bits, number=50) / 50
+print(f"set  intersection: {t_set * 1e6:8.1f} µs   -> {len(A_set & B_set)} elements")
+print(f"bits intersection: {t_bits * 1e6:8.1f} µs   -> {(A_bits & B_bits).bit_count()} elements")
+print(f"the bit version is about {t_set / t_bits:.0f} times faster")"""),
+md("""## 6 · Your own code
+
+This cell uses your `sets_lab.py` (run it in your lab repository after you have written the functions)."""),
+code("""from sets_lab import power_set, first_difference, counterexample_sets, recommend as my_recommend
+
+print(len(power_set(set(range(10)))), "subsets of a 10-element set")
+print(first_difference(lambda a, b, c: a and not (b and not c), lambda a, b, c: (a and not b) and not c, 3))
+print(counterexample_sets(lambda a, b: not (a and b), lambda a, b: (not a) and (not b), 2))
+print(my_recommend("u00", users))""", skip=True),
+md("""## Your turn
+
+1. In section 1, draw $A \\oplus B$ (use `A ^ B`) and $(A - B) \\cup (B - A)$. Then add a third circle $C$ and draw
+   both sides of the distributive law $A \\cap (B \\cup C) = (A \\cap B) \\cup (A \\cap C)$.
+2. In section 3, make the listeners pick 3 random artists instead of 2. How much noise can the blocks survive?
+3. In section 4, write a fourth paragraph that copies the original but changes every third word. Which $k$ still
+   catches it?"""),
+]
+
 NOTEBOOKS = {
     "lab01": (ROOT / "labs" / "templates" / "lab01" / "lab01.ipynb", LAB01),
     "lab02": (ROOT / "labs" / "templates" / "lab02" / "lab02.ipynb", LAB02),
@@ -718,6 +869,7 @@ NOTEBOOKS = {
     "lab04": (ROOT / "labs" / "templates" / "lab04" / "lab04.ipynb", LAB04),
     "lab05": (ROOT / "labs" / "templates" / "lab05" / "lab05.ipynb", LAB05),
     "lab06": (ROOT / "labs" / "templates" / "lab06" / "lab06.ipynb", LAB06),
+    "lab07": (ROOT / "labs" / "templates" / "lab07" / "lab07.ipynb", LAB07),
 }
 
 SKIP_TAG = "skip-execution"

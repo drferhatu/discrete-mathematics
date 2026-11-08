@@ -1,0 +1,286 @@
+---
+lab: 7
+week: 8
+title: "Sets and a Mini Recommender"
+description: "Build the power set and the Cartesian product by hand, store sets as bit strings, write a membership-table checker that proves or breaks set identities, and recommend courses and catch copied text with Jaccard similarity."
+assignment: lab07
+mode: classroom50
+status: open
+duration: "75 min + finish at home"
+points: 100
+files: ["sets_lab.py"]
+topics: ["power set", "Cartesian product", "bit strings", "membership tables", "Jaccard similarity"]
+notebook: { file: "labs/templates/lab07/lab07.ipynb", title: "Lab 7 · Explore: sets in pictures" }
+---
+
+## Goal
+
+This week’s notes started with a question a music app asks millions of times a day: how similar are two listeners? In this lab you build the answer, and the tools around it, from scratch. You will construct the two big “every possible” sets of the week, the **power set** and the **Cartesian product**, store sets as **bit strings**, and write a **membership-table checker**: a small program that proves a set identity, or breaks a false one and hands you the sets that break it. You finish with **Jaccard similarity**, which you will use to recommend courses to students and to catch a copied paragraph.
+
+Keep the box picture from the notes in mind: most mistakes this week come from mixing up an element with a set that contains it.
+
+Everything happens in one file, `sets_lab.py`. The functions build on each other, so please work through them **in order**, and run `python check.py` after each step.
+
+> [!note] You can start without the instructor
+> Every step below says what the function should do, shows an example with its expected result, and gives a hint about how to write it. Ask your neighbour first, then the instructor. If a step blocks you for more than ten minutes, note the error message and move on to the next one.
+
+## Steps
+
+<Step n={1} title="Accept Lab 7 and open it" time="3 min" id="accept">
+
+Click the orange **Accept lab lab07** button at the top of this page and then **Accept assignment**. When the checklist finishes, click **Open repository**. Then open the repository with the green **Code** button → **Codespaces** → **Create codespace on main**.
+
+You may also work on your own computer or in another editor; see [Other ways to work and submit](#other-ways-to-work-and-submit).
+
+</Step>
+
+<Step n={2} title="Python sets in two minutes" time="5 min" id="python-sets">
+
+Open `sets_lab.py` and read the comment at the top. Then try these lines in a Python shell (type `python` in the terminal), because you will use every one of them today:
+
+```python
+>>> A = {1, 2, 3}; B = {3, 4}
+>>> A | B, A & B, A - B, A ^ B        # ∪, ∩, −, ⊕
+({1, 2, 3, 4}, {3}, {1, 2}, {1, 2, 4})
+>>> {x * x for x in range(4)}         # set-builder notation, Python style
+{0, 1, 4, 9}
+>>> set()                             # the empty set ({} would be an empty dict!)
+set()
+>>> {frozenset(), frozenset({1})}     # a set of sets needs frozensets
+{frozenset(), frozenset({1})}
+```
+
+One rule for today: **do not import `itertools`**. It can build power sets and products for you, and building them yourself is the point of Part A. A check looks for the import.
+
+Run the checks once before you write anything. None of them will pass yet.
+
+<Terminal cmd="python check.py" out={`:| power_set gives every subset, including ∅ and the set itself, as frozensets
+    not implemented yet (still raises NotImplementedError)
+...
+0/19 checks passed`} />
+
+</Step>
+
+<Step n={3} title="Part A: the power set" time="12 min" id="power-set">
+
+**`power_set(s)`** returns the set of **all** subsets of `s`, including the empty set and `s` itself. A Python set cannot contain ordinary sets (they can change), so the subsets must be `frozenset`s.
+
+```python
+power_set({1, 2})    # {frozenset(), frozenset({1}), frozenset({2}), frozenset({1, 2})}
+power_set(set())     # {frozenset()}     P(∅) = {∅}: one element, the empty set
+```
+
+**How to build it.** This is the light-switch idea from the notes, one switch at a time. Start with a set that contains only the empty set. Then, for each element `x` of `s`, take every subset you have so far and add a copy **with `x` in it**:
+
+```text
+start          {∅}
+add 1          {∅, {1}}
+add 2          {∅, {1}, {2}, {1, 2}}
+```
+
+Each element doubles the collection, which is exactly why $|\mathcal{P}(S)| = 2^n$. In Python, `sub | {x}` makes a new frozenset with `x` added, and a set comprehension `{sub | {x} for sub in subsets}` makes all the copies at once. Join them to `subsets` with `|=`.
+
+The checks compare your answer with a reference for sets of up to 12 elements, which is $2^{12} = 4096$ subsets. They also make sure you do not change the set you were given.
+
+</Step>
+
+<Step n={4} title="Part A: the Cartesian product" time="5 min" id="cartesian">
+
+**`cartesian(a, b)`** returns $a \times b$, the set of all ordered pairs `(x, y)` with `x` from `a` and `y` from `b`. One set comprehension with two `for`s does it:
+
+```python
+cartesian({1, 2}, {"x", "y"})   # {(1, "x"), (1, "y"), (2, "x"), (2, "y")}
+cartesian({1, 2}, set())        # set()     A × ∅ = ∅
+```
+
+Order matters: `(1, "x")` is in $\{1, 2\} \times \{x, y\}$, but `("x", 1)` is not. The checks also confirm that $|A \times B| = |A| \cdot |B|$.
+
+</Step>
+
+<Step n={5} title="Part B: sets as bit strings" time="8 min" id="bits">
+
+A computer stores a subset of a small universe as a row of bits, one per element. The universe is given as a **list**, because a list fixes an order: bit $i$ belongs to `universe[i]`.
+
+**`to_bits(subset, universe)`** returns a string of `"0"` and `"1"`: character $i$ is `"1"` exactly when `universe[i]` is in the subset.
+
+```python
+to_bits({1, 3, 5}, [1, 2, 3, 4, 5])        # "10101"
+to_bits({"a"}, ["b", "a", "c"])            # "010"   (the list's order, not alphabetical)
+```
+
+**`from_bits(bits, universe)`** goes the other way: collect `universe[i]` for every position where `bits` has a `"1"`. `zip(universe, bits)` walks through both at once.
+
+```python
+from_bits("10101", [1, 2, 3, 4, 5])        # {1, 3, 5}
+```
+
+One check encodes and decodes **every** subset of a six-element universe ($2^6 = 64$ of them) and expects to get each one back unchanged.
+
+</Step>
+
+<Step n={6} title="Part C: expressions as functions" time="8 min" id="build">
+
+Part C is about set identities. To work with them in code, we need a way to write an expression such as $A - B$. Here is the trick from the notes: an element is in $A - B$ exactly when it **is** in $A$ and **is not** in $B$. So an expression in $k$ sets is a function of $k$ booleans, one per set, that answers “is an element with this membership in the result?”:
+
+| Expression | As a Python function |
+|---|---|
+| $A \cap B$ | `lambda a, b: a and b` |
+| $\overline{A \cup B}$ | `lambda a, b: not (a or b)` |
+| $A - (B - C)$ | `lambda a, b, c: a and not (b and not c)` |
+
+This is week 3’s logic, applied to membership.
+
+**`build(f, sets, universe)`** turns such a function into an actual set: all `x` in the universe for which `f(x in sets[0], x in sets[1], ...)` is true. The star unpacks a list of booleans into separate arguments: `f(*(x in S for S in sets))`.
+
+```python
+U = set(range(1, 11)); A = {1, 2, 3}; B = {3, 4}
+build(lambda a, b: a and not b, [A, B], U)     # {1, 2}          A − B
+build(lambda a: not a, [A], U)                 # {4, 5, ..., 10}  complement of A
+```
+
+</Step>
+
+<Step n={7} title="Part C: the membership table" time="10 min" id="table">
+
+**`membership_table(f, k)`** returns the membership table of an expression in $k$ sets: a list of $2^k$ rows. Each row is a tuple of $k + 1$ integers, the memberships (1 = in, 0 = not in) followed by the value of `f`. Rows go in the textbook order, from all ones down to all zeros:
+
+```python
+membership_table(lambda a, b: a and b, 2)
+# [(1, 1, 1), (1, 0, 0), (0, 1, 0), (0, 0, 0)]
+```
+
+**How to list the rows.** The rows are the numbers $2^k - 1, \dots, 1, 0$ written in binary with $k$ digits. `range(2 ** k - 1, -1, -1)` counts down, and for a number `i`, `format(i, f"0{k}b")` gives its digits as a string, such as `"10"`. Turn the digits into integers for the row, into booleans for `f` (`f(*[d == "1" for d in digits])`), and append `int(...)` of the result.
+
+</Step>
+
+<Step n={8} title="Part C: prove it or break it" time="10 min" id="difference">
+
+Now the checker. **`first_difference(f, g, k)`** compares two expressions row by row, in membership-table order. If they agree on every row, `f = g` is an identity: return `None`. Otherwise return the memberships of the **first** row where they differ, as a tuple of $k$ integers (without the value column).
+
+```python
+de_morgan = (lambda a, b: not (a or b),  lambda a, b: (not a) and (not b))
+wrong     = (lambda a, b: not (a and b), lambda a, b: (not a) and (not b))
+first_difference(*de_morgan, 2)     # None: an identity
+first_difference(*wrong, 2)         # (1, 0)
+```
+
+Both tables come from your `membership_table`; `zip` walks through them together, and `row[:-1]` drops the value.
+
+A row of the table is a **kind** of element, so a differing row is already a counterexample. **`counterexample_sets(f, g, k)`** makes it concrete: use a single element, 1, and put it into set $i$ exactly when the differing row has a 1 in position $i$. Return the list of $k$ sets, or `None` for an identity.
+
+```python
+counterexample_sets(lambda a, b: a and not b, lambda a, b: a, 2)
+# [{1}, {1}]   because A − B = A fails for A = {1}, B = {1}: then A − B = ∅
+```
+
+The checks run your checker on seven true identities and four traps from the notes, and then use `build` to confirm that your sets really break each trap. Your program has just done what the Venn lab in the notes does.
+
+</Step>
+
+<Step n={9} title="Part D: Jaccard similarity" time="5 min" id="jaccard">
+
+**`jaccard(a, b)`** returns $|a \cap b| \,/\, |a \cup b|$, a number from 0 to 1.
+
+```python
+jaccard({1, 2, 3}, {2, 3, 4})     # 0.5    two shared out of four in total
+jaccard({1}, {2})                 # 0.0
+jaccard(set(), set())             # 1.0
+```
+
+The last line needs care: the union of two empty sets is empty, so the formula would divide by zero. By convention two empty sets are identical, so return `1.0` in that case.
+
+</Step>
+
+<Step n={10} title="Part D: a course recommender" time="10 min" id="recommend">
+
+A dictionary `profiles` maps each student’s name to the set of courses they liked:
+
+```python
+profiles = {
+    "Ayşe": {"Algorithms", "Databases", "Discrete Math", "Machine Learning"},
+    "Mert": {"Databases", "Discrete Math", "Web Programming"},
+    "Elif": {"Algorithms", "Discrete Math", "Machine Learning", "Computer Vision"},
+}
+```
+
+**`most_similar(user, profiles)`** returns the name of the **other** student whose set is most similar to `user`’s. Two details matter, and the checks test both:
+
+- Skip the user: everybody has similarity 1.0 with themselves.
+- If several students tie, return the one whose name comes **first alphabetically**. A neat way is `min(others, key=lambda name: (-jaccard(...), name))`: the minus sign turns the highest similarity into the smallest key, and the name breaks ties.
+
+Return `None` if there is no other student.
+
+**`recommend(user, profiles)`** recommends everything the most similar student liked that the user has not: the set difference `profiles[best] - profiles[user]`, as a **sorted list**. Return `[]` if there is no other student.
+
+```python
+most_similar("Ayşe", profiles)    # "Elif"   (3/5 beats Mert's 2/5)
+recommend("Ayşe", profiles)       # ["Computer Vision"]
+```
+
+Three set operations (∩ and ∪ inside Jaccard, then −) and you have a recommender.
+
+</Step>
+
+<Step n={11} title="Part D: catching copied text" time="8 min" id="shingles">
+
+**`shingles(text, k=3)`** turns a text into the set of all runs of `k` consecutive words, as tuples. First get the words: lowercase the text and use `re.findall(r"[a-z0-9']+", ...)` (the `re` module is already imported), which also throws away punctuation. Then collect `tuple(words[i:i + k])` for every start position `i`. A text with fewer than `k` words has no shingles.
+
+```python
+shingles("The cat sat on the mat", 3)
+# {("the", "cat", "sat"), ("cat", "sat", "on"), ("sat", "on", "the"), ("on", "the", "mat")}
+```
+
+**`text_similarity(t1, t2, k=3)`** is one line: the Jaccard similarity of the two shingle sets. Try it in the shell on a sentence and a lightly reworded copy of it, and then on two unrelated sentences.
+
+</Step>
+
+<Step n={12} title="Submit" time="1 min" id="submit">
+
+When `python check.py` reports `19/19 checks passed`, or when you have done as much as you can, push your work. **Every push is graded out of 100.**
+
+<Terminal lines={['git add -A', 'git commit -m "Lab 7"', 'git push']} />
+
+About two minutes later your score appears under **Releases** on your repository page. Your last push before **Friday 23:59** is the one that counts.
+
+</Step>
+
+## Other ways to work and submit
+
+You do not have to use Codespaces or a terminal.
+
+**Work anywhere:** on your own computer (download the repository with **Code → Download ZIP**, then run `pip install pytest` and `python check.py`), on [cs50.dev](https://cs50.dev), in Google Colab, or in [github.dev](https://github.dev) by pressing <span class="kbd">.</span> on your repository page.
+
+**Submit from the browser:** open `sets_lab.py` in your repository on github.com, click the pencil icon ✎, select everything and paste your **whole** file, then click **Commit changes**. Alternatively, use **Add file → Upload files** and drag your `sets_lab.py` in. Keep the file name exactly `sets_lab.py`. Every commit is graded in the same way as a push.
+
+## Explore: the notebook
+
+The notebook **draws set identities** pixel by pixel, so you can see De Morgan’s law hold and its wrong version fail. It times how the **power set explodes** as you add elements. It invents 30 listeners from three hidden taste groups and lets **Jaccard similarity** discover the groups on its own. It catches a **reworded paragraph** with shingles and shows how the choice of $k$ matters. Finally, it measures how much faster a set stored as **bits** is.
+
+<NotebookEmbed file="labs/templates/lab07/lab07.ipynb" title="Lab 7 · Explore notebook" />
+
+## Challenges (optional, not graded)
+
+1. **Power set, the other way.** Write `power_set_bits(s)` that lists the subsets of `s` by counting a mask from 0 to $2^n - 1$, as in the notebook. Check that it agrees with your `power_set`.
+2. **Find the identities yourself.** Generate all expressions of the form `X op Y` where `X` and `Y` are $A$, $B$, $\overline{A}$ or $\overline{B}$ and `op` is ∪, ∩ or −. Use `first_difference` to group them into classes of equal expressions. How many different sets can you make from two sets? (Hint: think about the four regions of a Venn diagram.)
+3. **Inclusion–exclusion for three sets.** Guess a formula for $|A \cup B \cup C|$ using $|A|$, $|A \cap B|$, $|A \cap B \cap C|$ and so on, and test it on 1,000 random triples of sets.
+4. **Top 3.** Change `recommend` so that it combines the three most similar students, and ranks each course by how many of them liked it.
+
+## Troubleshooting
+
+> [!note] `TypeError: unhashable type: 'set'`
+> You tried to put a `set` inside a set. Use `frozenset(...)` for the subsets in `power_set`.
+
+> [!note] `RuntimeError: Set changed size during iteration`
+> You are adding to `subsets` while looping over it. Build the new subsets first, with a comprehension, and add them afterwards: `subsets |= {sub | {x} for sub in subsets}`.
+
+> [!note] `power_set` is missing the empty set or the whole set
+> Start from `{frozenset()}`, not from an empty set. The whole set appears by itself once every element has been added.
+
+> [!note] `membership_table` rows come out in the wrong order
+> The first row is all ones. Count **down** with `range(2 ** k - 1, -1, -1)`, and pad the binary digits to length `k`.
+
+> [!note] `most_similar` returns the user themselves
+> Leave the user out of the candidates: `[name for name in profiles if name != user]`.
+
+> [!note] `ZeroDivisionError` in `jaccard`
+> Both sets are empty, so their union is empty. Return `1.0` in that case before you divide.
