@@ -1,6 +1,6 @@
 ---
 lab: 12
-week: 14
+week: 13
 title: "Graphs from Scratch"
 description: "Build adjacency lists and matrices, verify the handshake theorem, test bipartiteness and compare with networkx."
 assignment: lab12

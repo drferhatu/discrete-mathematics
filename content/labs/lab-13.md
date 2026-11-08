@@ -1,6 +1,6 @@
 ---
 lab: 13
-week: 15
+week: 14
 title: "Coloring an Exam Timetable"
 description: "Build the conflict graph of real courses and color it greedily to produce an exam schedule."
 assignment: lab13

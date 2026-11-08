@@ -34,6 +34,25 @@ export function scheduleOf(n: number): ScheduleRow | undefined {
   return schedule.weeks.find((r) => r.week === n);
 }
 
+/** The week (Monday to Sunday) that contains the midterm date, if the date is set. */
+export function midtermWeek(): number | undefined {
+  const m = schedule.midterm.date;
+  if (!m) return undefined;
+  const t = new Date(m + 'T12:00:00Z').getTime();
+  return schedule.weeks.find((r) => {
+    const d = new Date(r.date + 'T12:00:00Z').getTime();
+    return d <= t && t < d + 7 * 86_400_000;
+  })?.week;
+}
+
+/** "Tue, Nov 24 · 17:00–19:00 · A206" */
+export function formatMidterm(): string {
+  const { date, time, room } = schedule.midterm;
+  if (!date) return '';
+  const wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(date + 'T12:00:00Z').getUTCDay()];
+  return [`${wd}, ${formatDate(date)}`, time, room].filter(Boolean).join(' · ');
+}
+
 export async function getWeeksSorted(): Promise<Week[]> {
   return (await getCollection('weeks')).sort((a, b) => a.data.week - b.data.week);
 }

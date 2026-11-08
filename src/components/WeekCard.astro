@@ -1,6 +1,6 @@
 ---
 import type { Week } from '@/lib/site';
-import { moduleOf, moduleColorVar, weekHref, scheduleOf, formatDate, STATUS_LABEL, pad } from '@/lib/site';
+import { moduleOf, moduleColorVar, weekHref, scheduleOf, formatDate, STATUS_LABEL, midtermWeek, formatMidterm, pad } from '@/lib/site';
 import ModuleChip from './ModuleChip.astro';
 
 interface Props { week: Week; }
@@ -28,6 +28,7 @@ const statusLabel = s && s.status !== 'normal' ? STATUS_LABEL[s.status] : '';
   <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-2">{week.data.description}</p>
   <div class="mt-auto flex flex-wrap items-center gap-2 pt-4 text-[11px] font-medium">
     {week.data.exam && <span class="rounded-md bg-accent-soft px-2 py-0.5 text-accent">Exam</span>}
+    {week.data.week === midtermWeek() && <span class="rounded-md bg-accent-soft px-2 py-0.5 text-accent">Midterm {formatMidterm()}</span>}
     {statusLabel && !week.data.exam && <span class="rounded-md bg-paper-2 px-2 py-0.5 text-ink-2">{statusLabel}</span>}
     {week.data.lab && <span class="rounded-md bg-brand-soft px-2 py-0.5 font-mono text-brand">+ lab</span>}
     {week.data.status === 'ready' && <span class="rounded-md bg-true-soft px-2 py-0.5 text-true">Notes ready</span>}

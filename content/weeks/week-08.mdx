@@ -1,0 +1,521 @@
+---
+week: 8
+title: "Sets and Set Operations"
+description: "What a set is and how to write one down; subsets, power sets and Cartesian products; union, intersection, difference and complement; and how to prove set identities, with the logic from weeks 3 and 7 doing all the work."
+module: m4
+status: ready
+reading: "Rosen 2.1–2.2"
+lab: lab-07
+objectives:
+  - "Describe a set by listing its elements and by set-builder notation, and tell ∈ apart from ⊆ and ∅ apart from {∅}."
+  - "Decide whether one set is a subset of another, and prove subset and equality statements from the definitions."
+  - "Compute power sets and Cartesian products, and explain why they have 2ⁿ and |A|·|B| elements."
+  - "Apply union, intersection, difference, complement and symmetric difference, and count a union with inclusion–exclusion."
+  - "Prove set identities in three ways: by double inclusion, with logical equivalences and with membership tables."
+  - "Use sets in Python and SQL, represent sets as bit strings, and measure similarity with the Jaccard index."
+wow:
+  title: "One fraction, |A ∩ B| / |A ∪ B|, finds near-duplicate web pages, similar listeners and copied homework."
+  text: "In 1997 the search engine AltaVista had to spot copies of the same page among millions. The solution was to turn every page into a set of short phrases and compare the sets with the Jaccard similarity: shared elements divided by all elements. The same line of set algebra still powers recommenders and plagiarism checkers, and in the lab you will build a small recommender with it."
+industry:
+  - {"t": "Databases", "d": "SQL’s UNION, INTERSECT and EXCEPT are union, intersection and difference; a table is a subset of a Cartesian product, and a JOIN starts as one."}
+  - {"t": "Search and deduplication", "d": "Search engines turn documents into sets of phrases and compare them with Jaccard similarity to hide near-duplicate pages."}
+  - {"t": "Access control", "d": "A user’s permissions are a set; “can this user do X?” is a membership test, and the permissions of a role are a union of smaller sets."}
+  - {"t": "Systems programming", "d": "Unix file permissions, CPU feature flags and network masks store small sets as bit strings and combine them with bitwise AND and OR."}
+  - {"t": "Bloom filters", "d": "Browsers, databases and caches answer “is x in this huge set?” approximately, with a few bits per element instead of the elements themselves."}
+slides: []
+resources:
+  - {"title": "Book of Proof (Richard Hammack)", "url": "https://richardhammack.github.io/BookOfProof/", "note": "Chapter 1 (sets) and Chapter 8 (proofs involving sets). Free and very clear."}
+  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Section 0.3, sets"}
+  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapter 4.1, sets"}
+  - {"title": "Python documentation: set types", "url": "https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset", "note": "every set operation of this week, as a method or an operator"}
+  - {"title": "Jaccard index (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Jaccard_index"}
+tags: ["set", "element", "empty set", "set-builder notation", "subset", "power set", "Cartesian product", "union", "intersection", "difference", "complement", "symmetric difference", "inclusion–exclusion", "set identities", "membership table", "bit string", "Jaccard"]
+---
+
+import SetBoxes from '@/components/SetBoxes.astro';
+import SubsetSwitches from '@/components/SubsetSwitches.astro';
+import VennLab from '@/components/VennLab.astro';
+
+## Why sets?
+
+Open your phone and you will find sets everywhere. Your contacts are a set of people. The songs you have liked are a set of songs. The courses you are taking this term are a set of courses. When an app asks “which of your friends also follow this account?”, it is taking two sets and asking for the elements they share.
+
+Here is a question a music app has to answer millions of times a day. Ayşe has liked these artists:
+
+$$
+A = \{\text{Sezen Aksu},\ \text{Tarkan},\ \text{Duman},\ \text{Coldplay},\ \text{Adele}\}
+$$
+
+and Mert has liked these:
+
+$$
+M = \{\text{Duman},\ \text{Coldplay},\ \text{Adele},\ \text{Daft Punk}\}.
+$$
+
+How similar are their tastes? They share three artists (Duman, Coldplay, Adele), and between them they like six different artists. So a fair answer is $3/6 = 0.5$: half of everything they listen to, they both listen to. If Mert’s most similar listener is Ayşe, the app can suggest Tarkan to Mert. That fraction has a name, the **Jaccard similarity**, and by the end of this week you will see that it is just two set operations and a division.
+
+This week we learn the language behind that calculation. Sets are the simplest data structure in mathematics, and almost every other one is built from them: relations and functions next week, graphs at the end of the course, and every table in every database you will ever use.
+
+> [!why] Why a software engineer should care
+> You already use sets, even when you do not call them that. Removing duplicates from a list, checking whether a user has a permission, finding the customers who bought both A and B, or the files that changed in one branch but not in the other: all of these are set operations. Knowing the algebra lets you rewrite a slow query into a fast one with confidence, because two set expressions that are provably equal **must** return the same rows.
+
+## What is a set?
+
+> [!definition] Set
+> A **set** is an unordered collection of distinct objects, called its **elements** or **members**. We write $a \in A$ for “$a$ is an element of $A$” and $a \notin A$ for “$a$ is not an element of $A$”.
+
+The easiest picture is a **bag**, or better, a **box**. You throw things in, and the only question a set can answer is: *is this thing inside or not?* Two consequences follow, and both surprise beginners.
+
+- **Order does not matter.** $\{1, 2, 3\}$ and $\{3, 1, 2\}$ are the same set: the same things are in the box.
+- **Repetition does not matter.** $\{1, 1, 2\}$ is just $\{1, 2\}$. Throwing a second copy of the same thing into the box does not change what is in the box.
+
+This is exactly how a Python `set` behaves, and why turning a list into a set is the classic way to remove duplicates:
+
+```python
+>>> {3, 1, 2} == {1, 2, 3}
+True
+>>> set([1, 1, 2, 2, 2, 3])
+{1, 2, 3}
+>>> 2 in {1, 2, 3}          # membership: the one question a set answers
+True
+```
+
+If order matters, you want a **sequence** (a list, a tuple); if repetitions matter, you want a **multiset** (Python’s `collections.Counter`). Sets deliberately forget both.
+
+### Two ways to write a set down
+
+**Roster notation** lists the elements between braces: $V = \{a, e, i, o, u\}$ is the set of vowels in English. When the pattern is obvious we use dots: $O = \{1, 3, 5, 7, 9\}$, or $\{1, 2, 3, \dots, 100\}$, or $\{0, 1, 2, \dots\}$ for a set that never ends.
+
+**Set-builder notation** describes the elements by a property they share:
+
+$$
+O = \{x \mid x \text{ is an odd positive integer less than } 10\}
+\qquad\text{or}\qquad
+O = \{x \in \mathbb{Z}^+ \mid x \text{ is odd and } x \lt 10\}.
+$$
+
+Read the bar $\mid$ as “such that”. Programmers have seen this before: set-builder notation is a **set comprehension**.
+
+```python
+>>> {x for x in range(1, 10) if x % 2 == 1}     # {x ∈ Z⁺ | x odd and x < 10}
+{1, 3, 5, 7, 9}
+>>> {x * x for x in range(-3, 4)}               # {x² | x ∈ {−3, …, 3}}
+{0, 1, 4, 9}
+```
+
+The second line also shows the “no repetitions” rule in action: $(-3)^2$ and $3^2$ are the same element, so it appears once.
+
+A few sets are used so often that they have their own letters:
+
+| Symbol | Name | Elements |
+|---|---|---|
+| $\mathbb{N}$ | natural numbers | $\{0, 1, 2, 3, \dots\}$ (Rosen includes 0) |
+| $\mathbb{Z}$ | integers | $\{\dots, -2, -1, 0, 1, 2, \dots\}$ |
+| $\mathbb{Z}^+$ | positive integers | $\{1, 2, 3, \dots\}$ |
+| $\mathbb{Q}$ | rational numbers | $\{p/q \mid p, q \in \mathbb{Z},\ q \neq 0\}$ |
+| $\mathbb{R}$ | real numbers | every point of the number line |
+
+For real numbers we also use **intervals**: $[a, b] = \{x \in \mathbb{R} \mid a \le x \le b\}$ includes both ends, $(a, b)$ excludes both, and $[a, b)$ includes only $a$.
+
+### When are two sets equal?
+
+> [!definition] Equal sets
+> Two sets are **equal** if they have exactly the same elements:
+> $A = B$ means $\forall x\,(x \in A \leftrightarrow x \in B)$.
+
+That is all. It does not matter how the sets are described. $\{x \in \mathbb{R} \mid x^2 = 1\}$ and $\{-1, 1\}$ and $\{1, -1, 1\}$ are three descriptions of one and the same set. Notice the biconditional in the definition: it will tell us later **how to prove** that two sets are equal.
+
+### The empty set, and boxes inside boxes
+
+The set with no elements at all is the **empty set**, written $\emptyset$ or $\{\,\}$. There is only one empty set: any two sets without elements have the same elements (none), so they are equal. The set of students in this class who are older than 200 is $\emptyset$; so is $\{x \in \mathbb{R} \mid x^2 = -1\}$.
+
+Elements of a set can themselves be sets. This is where the box picture really earns its place:
+
+<SetBoxes />
+
+- $\emptyset$ is an empty box. It has **0** elements.
+- $\{\emptyset\}$ is a box with an empty box inside. It has **1** element, the empty box. It is **not** empty!
+- $\{\emptyset, \{\emptyset\}\}$ has 2 elements: an empty box, and a box containing an empty box.
+- $\{1, \{1\}\}$ also has 2 elements: the number 1, and a box containing the number 1. These are different things, so both count.
+
+A box counts only what is **directly** inside it. You do not open the inner boxes when you count.
+
+> [!warning] An empty box is not a box with an empty box inside
+> An empty folder on your computer and a folder that contains one empty folder are not the same thing: one shows “0 items”, the other “1 item”. In the same way, $\emptyset \ne \{\emptyset\}$. Python shows the same difference: `len(set())` is 0, while `len({frozenset()})` is 1.
+>
+> Python has two more traps here. First, `{}` is an empty **dictionary**, not an empty set; write `set()`. Second, an ordinary `set` cannot be an element of another set, because sets can change; for “a set of sets” Python uses `frozenset`, a set that can never change.
+
+> [!note] A set that breaks mathematics
+> Around 1900 mathematicians thought any property defines a set. Bertrand Russell asked about $R = \{S \mid S \notin S\}$, “the set of all sets that do not contain themselves”. Is $R \in R$? If it is, then by its own definition it is not; if it is not, then by definition it is. Either answer contradicts itself (a proof by contradiction from week 7, aimed at mathematics itself!). Modern set theory avoids the paradox by building sets only **inside** a given universe, which is exactly why we write $\{x \in \mathbb{Z} \mid \dots\}$ and not just $\{x \mid \dots\}$.
+
+### Venn diagrams and the universal set
+
+When we talk about sets, there is usually a background collection that everything is drawn from: all integers, all students of the university, all songs in the catalogue. That background is the **universal set** $U$. A **Venn diagram** draws $U$ as a rectangle and each set as a circle inside it; elements in a circle belong to that set. The picture is not a proof, but it is the best way to **see** what an expression means before you prove anything about it. You will use them all week, and the [Venn lab](#the-venn-lab) below draws them for you.
+
+## Subsets
+
+> [!definition] Subset
+> $A$ is a **subset** of $B$, written $A \subseteq B$, if every element of $A$ is also an element of $B$:
+> $A \subseteq B$ means $\forall x\,(x \in A \to x \in B)$.
+> If $A \subseteq B$ but $A \ne B$, then $A$ is a **proper subset** of $B$, written $A \subset B$.
+
+For example, $\{1, 3\} \subseteq \{1, 2, 3\}$, the set of computer engineering students is a subset of the set of university students, and $\mathbb{N} \subseteq \mathbb{Z} \subseteq \mathbb{Q} \subseteq \mathbb{R}$. In a Venn diagram, $A \subseteq B$ means the circle of $A$ sits entirely inside the circle of $B$.
+
+The definition is a universally quantified conditional, so everything from weeks 4 and 7 applies at once:
+
+- **To prove** $A \subseteq B$: take an **arbitrary** element $x \in A$ and show that $x \in B$. (A direct proof, with the “stranger” from week 7.)
+- **To disprove** $A \subseteq B$: find **one** element of $A$ that is not in $B$. (A counterexample.)
+
+> [!theorem] Two facts about every set
+> For every set $S$: (1) $\emptyset \subseteq S$, and (2) $S \subseteq S$.
+
+> [!proof]
+> (1) We must show $\forall x\,(x \in \emptyset \to x \in S)$. The hypothesis $x \in \emptyset$ is false for every $x$, because the empty set has no elements. So the conditional is true for every $x$: this is a **vacuous proof**, the “unicorns in this classroom” of week 7. (2) If $x \in S$, then $x \in S$. The conditional $p \to p$ is always true.
+
+So the empty set is a subset of every set, which in Python reads `set() <= {1, 2}` → `True`. And proving one subset fact from others feels exactly like week 7:
+
+> [!theorem] Subsets are transitive
+> If $A \subseteq B$ and $B \subseteq C$, then $A \subseteq C$.
+
+> [!proof]
+> Let $x$ be an arbitrary element of $A$. Since $A \subseteq B$, $x \in B$. Since $B \subseteq C$, $x \in C$. So every element of $A$ is in $C$, that is, $A \subseteq C$.
+
+That is week 6’s hypothetical syllogism, $p \to q,\ q \to r \therefore p \to r$, wearing set clothes. Get used to this feeling: this whole week, **set theory is logic in disguise**.
+
+### Equality is two subsets
+
+Since $x \in A \leftrightarrow x \in B$ is the same as $(x \in A \to x \in B) \land (x \in B \to x \in A)$, we get the single most useful tool of the week:
+
+$$
+A = B \quad\text{if and only if}\quad A \subseteq B \text{ and } B \subseteq A.
+$$
+
+This is the “two directions” proof of week 7: to show two sets are equal, show each one is inside the other. It is called **double inclusion**, and we will use it below to prove set identities.
+
+> [!warning] ∈ or ⊆?
+> These are the most commonly confused symbols of the week. $\in$ relates an **element** to a set; $\subseteq$ relates a **set** to a set. With $A = \{1, 2, \{3\}\}$:
+>
+> | Statement | True? | Why |
+> |---|---|---|
+> | $1 \in A$ | yes | 1 is directly inside the box |
+> | $\{1\} \in A$ | no | the box does not contain the box $\{1\}$ |
+> | $\{1\} \subseteq A$ | yes | every element of $\{1\}$, namely 1, is in $A$ |
+> | $3 \in A$ | no | 3 is inside an inner box, not directly inside $A$ |
+> | $\{3\} \in A$ | yes | the box $\{3\}$ is one of the three elements |
+> | $\{3\} \subseteq A$ | no | that would need $3 \in A$ |
+> | $\emptyset \subseteq A$ | yes | true for every set |
+> | $\emptyset \in A$ | no | there is no empty box among the elements |
+
+## Size: cardinality
+
+> [!definition] Cardinality
+> If a set $S$ has exactly $n$ distinct elements, where $n$ is a natural number, then $S$ is **finite** and $n$ is its **cardinality**, written $|S| = n$. A set that is not finite is **infinite**.
+
+So $|\{a, e, i, o, u\}| = 5$, $|\emptyset| = 0$, $|\{\emptyset\}| = 1$ and $|\{1, 1, 2\}| = 2$. In Python, $|S|$ is `len(S)`. Infinite sets such as $\mathbb{Z}$ also have sizes, and some infinities turn out to be bigger than others. That surprising story is the topic of [week 10](/weeks/week-10).
+
+## The power set: every possible choice
+
+> [!definition] Power set
+> The **power set** of $S$, written $\mathcal{P}(S)$, is the set of **all subsets** of $S$.
+
+At a pizza place you can add any of three toppings, $S = \{\text{cheese}, \text{olives}, \text{mushrooms}\}$, and you may choose any combination, including none and all three. Every possible order is a subset of $S$, so the menu of possible orders is $\mathcal{P}(S)$:
+
+$$
+\mathcal{P}(S) = \big\{\ \emptyset,\ \{c\},\ \{o\},\ \{m\},\ \{c, o\},\ \{c, m\},\ \{o, m\},\ \{c, o, m\}\ \big\}.
+$$
+
+That is 8 orders. Why 8? Think of each topping as a **light switch**. For each topping you make one yes/no decision, so a subset is just a row of switches, a **bit string**: `101` means cheese yes, olives no, mushrooms yes. Three switches have $2 \cdot 2 \cdot 2 = 2^3 = 8$ positions. Flip the switches below and add a fourth and a fifth topping: every new element **doubles** the number of subsets.
+
+<SubsetSwitches />
+
+> [!theorem] Size of the power set
+> If $|S| = n$, then $|\mathcal{P}(S)| = 2^n$.
+
+Two edge cases are worth checking. $\mathcal{P}(\emptyset) = \{\emptyset\}$ has $2^0 = 1$ element: you can always choose nothing. And $\mathcal{P}(\{\emptyset\}) = \{\emptyset, \{\emptyset\}\}$ has $2^1 = 2$.
+
+> [!industry] Where 2ⁿ bites
+> Feature flags: a product with 20 on/off flags has $2^{20} \approx 1$ million possible configurations, which is why nobody tests them all. Brute force: trying every subset of 60 items takes $2^{60} \approx 10^{18}$ steps, longer than a lifetime even at a billion steps per second. Whenever an algorithm “tries every subset”, it is walking through a power set, and the doubling will catch up with it quickly.
+
+## Cartesian products: every possible pair
+
+Sets ignore order, but often order is exactly what we need: a point $(3, 5)$ on the plane is not the point $(5, 3)$. An **ordered pair** $(a, b)$ has a first and a second element, and $(a, b) = (c, d)$ only when $a = c$ **and** $b = d$. More generally, an ordered $n$-tuple $(a_1, a_2, \dots, a_n)$ has a first, second, …, $n$-th element.
+
+> [!definition] Cartesian product
+> The **Cartesian product** of $A$ and $B$ is the set of all ordered pairs whose first element comes from $A$ and second from $B$:
+> $A \times B = \{(a, b) \mid a \in A \text{ and } b \in B\}$.
+
+A restaurant offers a fixed menu: one soup from $S = \{\text{lentil}, \text{tomato}\}$ and one main course from $M = \{\text{kebab}, \text{pide}, \text{mantı}\}$. Every possible meal is a pair, and the set of all meals is
+
+$$
+S \times M = \{(\text{lentil}, \text{kebab}), (\text{lentil}, \text{pide}), (\text{lentil}, \text{mantı}), (\text{tomato}, \text{kebab}), (\text{tomato}, \text{pide}), (\text{tomato}, \text{mantı})\}.
+$$
+
+Draw it as a grid, soups as rows and mains as columns, and you can see why there are $2 \cdot 3 = 6$ meals. In general $|A \times B| = |A| \cdot |B|$: a chessboard is $\{a, \dots, h\} \times \{1, \dots, 8\}$, with $8 \cdot 8 = 64$ squares.
+
+Some things to notice:
+
+- **Order matters.** $A \times B \neq B \times A$ in general: (lentil, kebab) is in $S \times M$, but (kebab, lentil) is not.
+- **The empty set wipes everything out.** $A \times \emptyset = \emptyset$: with no main courses, there are no meals.
+- **More factors.** $A \times B \times C$ is the set of triples; $A^2$ means $A \times A$. The set of all 8-bit bytes is $\{0, 1\}^8$, with $2^8 = 256$ elements.
+
+> [!industry] Databases
+> A database table with columns `student`, `course` and `grade` is a **subset** of the Cartesian product $\text{Students} \times \text{Courses} \times \text{Grades}$: the rows that actually happened. In SQL, `SELECT * FROM S CROSS JOIN M` returns exactly $S \times M$, and every JOIN conceptually starts from a product and keeps the matching rows. A subset of a Cartesian product has a name, a **relation**, and it is the main character of [next week](/weeks/week-09).
+
+### Sets meet quantifiers
+
+The notation also cleans up the quantifiers of weeks 4 and 5. Instead of naming the domain in words, we write it into the quantifier: $\forall x \in \mathbb{R}\ (x^2 \ge 0)$ and $\exists x \in \mathbb{Z}\ (x^2 = 1)$. And a predicate $P$ on a domain $D$ has a **truth set**, the set of elements that make it true: $\{x \in D \mid P(x)\}$. The truth set of $x^2 = 1$ on $\mathbb{Z}$ is $\{-1, 1\}$. Then $\forall x\, P(x)$ is true exactly when the truth set is all of $D$, and $\exists x\, P(x)$ exactly when it is not empty.
+
+## Set operations
+
+Now the toolbox. Each operation builds a new set from old ones, and, as you will see in the table at the end, each one is a logical connective from week 2 in disguise.
+
+> [!definition] Union, intersection, difference, complement
+> Let $A$ and $B$ be subsets of a universal set $U$.
+> - The **union** $A \cup B = \{x \mid x \in A \lor x \in B\}$: elements in $A$, in $B$, or in both.
+> - The **intersection** $A \cap B = \{x \mid x \in A \land x \in B\}$: elements in both. If $A \cap B = \emptyset$, the sets are **disjoint**.
+> - The **difference** $A - B = \{x \mid x \in A \land x \notin B\}$: elements of $A$ that are not in $B$. (Also written $A \setminus B$.)
+> - The **complement** $\overline{A} = \{x \in U \mid x \notin A\} = U - A$: everything in the universe outside $A$. (Also written $A^c$ or $A'$.)
+
+Back to Ayşe and Mert:
+
+| Expression | Result | In words |
+|---|---|---|
+| $A \cup M$ | $\{\text{Sezen Aksu}, \text{Tarkan}, \text{Duman}, \text{Coldplay}, \text{Adele}, \text{Daft Punk}\}$ | liked by at least one of them |
+| $A \cap M$ | $\{\text{Duman}, \text{Coldplay}, \text{Adele}\}$ | liked by both |
+| $A - M$ | $\{\text{Sezen Aksu}, \text{Tarkan}\}$ | Ayşe’s artists that Mert has not found yet: **recommend these to Mert** |
+| $M - A$ | $\{\text{Daft Punk}\}$ | recommend this one to Ayşe |
+
+Notice that $A - M \neq M - A$: difference, like subtraction, is not commutative. A fifth operation collects the two differences into one set:
+
+> [!definition] Symmetric difference
+> $A \oplus B = (A - B) \cup (B - A)$: the elements in exactly one of the two sets.
+
+For our listeners, $A \oplus M = \{\text{Sezen Aksu}, \text{Tarkan}, \text{Daft Punk}\}$, the artists they **disagree** on. The symbol is not an accident: $x \in A \oplus B$ exactly when $(x \in A) \oplus (x \in B)$, the exclusive or of week 2. It is the set version of `git diff`: what is in one version but not in the other.
+
+Every one of these operations is built into Python, with an operator **and** a method name, and into SQL:
+
+```python
+A = {"Sezen Aksu", "Tarkan", "Duman", "Coldplay", "Adele"}
+M = {"Duman", "Coldplay", "Adele", "Daft Punk"}
+
+A | M      # union                 A.union(M)
+A & M      # intersection          A.intersection(M)
+A - M      # difference            A.difference(M)
+A ^ M      # symmetric difference  A.symmetric_difference(M)
+A <= M     # subset?               A.issubset(M)
+A.isdisjoint(M)                    # A & M == set() ?
+```
+
+| Mathematics | Python | SQL |
+|---|---|---|
+| $A \cup B$ | `A \| B` | `... UNION ...` |
+| $A \cap B$ | `A & B` | `... INTERSECT ...` |
+| $A - B$ | `A - B` | `... EXCEPT ...` |
+| $A \subseteq B$ | `A <= B` | `NOT EXISTS (... EXCEPT ...)` |
+
+### Counting a union: inclusion–exclusion
+
+How many elements does $A \cup B$ have? Adding $|A| + |B|$ counts every element of the intersection **twice**, once in each set, so we subtract the intersection once:
+
+$$
+|A \cup B| = |A| + |B| - |A \cap B|.
+$$
+
+For the listeners: $|A \cup M| = 5 + 4 - 3 = 6$. ✓
+
+> [!example] A class survey
+> In a class of 60 students, 35 have written Python, 28 have written Java, and 15 have written both. How many have written **at least one** of the two, and how many **neither**?
+>
+> With $P$ and $J$ for the two groups: $|P \cup J| = 35 + 28 - 15 = 48$. The students who have written neither are the complement of $P \cup J$ in the class, so there are $60 - 48 = 12$ of them. A Venn diagram makes it concrete: $20$ in Python only, $15$ in both, $13$ in Java only, and $12$ outside both circles.
+
+## The algebra of sets
+
+Here is the key observation of the week. Every operation is defined by a logical connective acting on membership:
+
+$$
+x \in A \cup B \iff (x \in A) \lor (x \in B), \qquad
+x \in A \cap B \iff (x \in A) \land (x \in B), \qquad
+x \in \overline{A} \iff \neg (x \in A).
+$$
+
+So **every logical equivalence from week 3 gives a set identity for free**: replace $\lor$ with $\cup$, $\land$ with $\cap$, $\neg$ with complement, $\mathbf{T}$ with $U$ and $\mathbf{F}$ with $\emptyset$. Put the two tables side by side and they are the same table.
+
+| Name | Set identity | Logical equivalence it comes from |
+|---|---|---|
+| Identity | $A \cup \emptyset = A$, $\ A \cap U = A$ | $p \lor \mathbf{F} \equiv p$, $\ p \land \mathbf{T} \equiv p$ |
+| Domination | $A \cup U = U$, $\ A \cap \emptyset = \emptyset$ | $p \lor \mathbf{T} \equiv \mathbf{T}$, $\ p \land \mathbf{F} \equiv \mathbf{F}$ |
+| Idempotent | $A \cup A = A$, $\ A \cap A = A$ | $p \lor p \equiv p$, $\ p \land p \equiv p$ |
+| Complementation | $\overline{\overline{A}} = A$ | $\neg\neg p \equiv p$ |
+| Commutative | $A \cup B = B \cup A$, $\ A \cap B = B \cap A$ | $p \lor q \equiv q \lor p$, … |
+| Associative | $A \cup (B \cup C) = (A \cup B) \cup C$, same for $\cap$ | $p \lor (q \lor r) \equiv (p \lor q) \lor r$, … |
+| Distributive | $A \cap (B \cup C) = (A \cap B) \cup (A \cap C)$ | $p \land (q \lor r) \equiv (p \land q) \lor (p \land r)$ |
+| | $A \cup (B \cap C) = (A \cup B) \cap (A \cup C)$ | $p \lor (q \land r) \equiv (p \lor q) \land (p \lor r)$ |
+| De Morgan | $\overline{A \cup B} = \overline{A} \cap \overline{B}$, $\ \overline{A \cap B} = \overline{A} \cup \overline{B}$ | $\neg(p \lor q) \equiv \neg p \land \neg q$, … |
+| Absorption | $A \cup (A \cap B) = A$, $\ A \cap (A \cup B) = A$ | $p \lor (p \land q) \equiv p$, … |
+| Complement | $A \cup \overline{A} = U$, $\ A \cap \overline{A} = \emptyset$ | $p \lor \neg p \equiv \mathbf{T}$, $\ p \land \neg p \equiv \mathbf{F}$ |
+
+One more is used constantly, and it turns a difference into operations from the table: $A - B = A \cap \overline{B}$. (In words: “in $A$ and not in $B$”.)
+
+> [!tip] De Morgan in plain words
+> “Not in ($A$ or $B$)” means “not in $A$ **and** not in $B$”: someone who is in neither the Python club nor the Java club is outside both. Complementing a union gives an intersection of complements, and the other way round. The most common mistake of the week is to forget the swap and write $\overline{A \cap B} = \overline{A} \cap \overline{B}$. Try it in the lab below: the red regions show exactly where it goes wrong.
+
+### The Venn lab
+
+Type two expressions in $A$, $B$ and $C$. The lab shades each one, compares them region by region, and either confirms that they are equal for **every** choice of sets, or shows a region where they differ, that is, a counterexample. Start with the presets, then try the traps: each one is a mistake students really make.
+
+<VennLab id="venn-week8" />
+
+## Proving set identities
+
+A Venn diagram shows you what is true; it does not prove it. (A picture with three circles cannot show every possible situation, and drawings can mislead.) There are three standard ways to turn a picture into a proof. We will prove De Morgan’s law, $\overline{A \cap B} = \overline{A} \cup \overline{B}$, in all three, so you can compare.
+
+### Method 1: double inclusion (chase an element)
+
+This is the most important method, because it works for **every** statement about sets, including the ones that are not identities in the table. We prove two subset statements, each by taking an arbitrary element.
+
+> [!proof]
+> ($\subseteq$) Let $x \in \overline{A \cap B}$. Then $x \notin A \cap B$, so it is **not** the case that ($x \in A$ and $x \in B$). By De Morgan’s law for logic, $x \notin A$ or $x \notin B$. That is, $x \in \overline{A}$ or $x \in \overline{B}$, so $x \in \overline{A} \cup \overline{B}$.
+>
+> ($\supseteq$) Let $x \in \overline{A} \cup \overline{B}$. Then $x \notin A$ or $x \notin B$. So it is not the case that $x$ is in both $A$ and $B$: $x \notin A \cap B$, that is, $x \in \overline{A \cap B}$.
+>
+> Each side is a subset of the other, so the two sets are equal.
+
+The rhythm is week 7’s **unpack, work, repack**: unpack the membership with the definition of the operation, work with logic, repack into the definition of the other side.
+
+### Method 2: set-builder notation and logical equivalences
+
+Instead of one element at a time, we rewrite the whole set as a chain of equalities, each justified by a definition or a logical equivalence. It reads like algebra.
+
+$$
+\begin{aligned}
+\overline{A \cap B}
+&= \{x \mid x \notin A \cap B\} && \text{definition of complement} \\
+&= \{x \mid \neg(x \in A \land x \in B)\} && \text{definition of intersection} \\
+&= \{x \mid \neg(x \in A) \lor \neg(x \in B)\} && \text{De Morgan's law for logic} \\
+&= \{x \mid x \in \overline{A} \lor x \in \overline{B}\} && \text{definition of complement} \\
+&= \{x \mid x \in \overline{A} \cup \overline{B}\} && \text{definition of union} \\
+&= \overline{A} \cup \overline{B}.
+\end{aligned}
+$$
+
+### Method 3: membership tables
+
+An element either is or is not in each set, so with two sets there are only **four kinds** of elements: in both, in $A$ only, in $B$ only, in neither. (They are the four regions of a two-circle Venn diagram.) A **membership table** checks the identity for every kind of element, with 1 for “in the set” and 0 for “not in it”. It is a truth table with a new name, and like a truth table it is a complete proof: an exhaustive proof over the four kinds of elements.
+
+| $A$ | $B$ | $A \cap B$ | $\overline{A \cap B}$ | $\overline{A}$ | $\overline{B}$ | $\overline{A} \cup \overline{B}$ |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| 1 | 1 | 1 | **0** | 0 | 0 | **0** |
+| 1 | 0 | 0 | **1** | 0 | 1 | **1** |
+| 0 | 1 | 0 | **1** | 1 | 0 | **1** |
+| 0 | 0 | 0 | **1** | 1 | 1 | **1** |
+
+The two bold columns are identical, so the sets are equal. With three sets there are $2^3 = 8$ rows (the eight regions of a three-circle diagram); the Venn lab above prints this table for you.
+
+### Building on identities
+
+Once the table of identities is proved, you can use it like algebra, without going back to elements, exactly as you simplified logical expressions in week 3.
+
+> [!example] Simplify $\overline{A \cup (B \cap C)}$
+> $$
+> \begin{aligned}
+> \overline{A \cup (B \cap C)} &= \overline{A} \cap \overline{B \cap C} && \text{De Morgan} \\
+> &= \overline{A} \cap (\overline{B} \cup \overline{C}) && \text{De Morgan} \\
+> &= (\overline{C} \cup \overline{B}) \cap \overline{A} && \text{commutative, twice}
+> \end{aligned}
+> $$
+> In words: being outside “$A$, or both $B$ and $C$” means being outside $A$ and also missing at least one of $B$ and $C$.
+
+### Disproving: one element is enough
+
+Not everything that looks like an identity is one. To disprove “$A - (B - C) = (A - B) - C$ for all sets”, you need just **one** choice of sets where it fails, the counterexample of week 7. Take $A = \{1\}$, $B = \{1\}$, $C = \{1\}$. Then $B - C = \emptyset$, so $A - (B - C) = \{1\}$, but $A - B = \emptyset$, so $(A - B) - C = \emptyset$. The two sides differ, so the claim is false. (The Venn lab finds this one for you: look at the trap called “regroup a difference”.)
+
+> [!tip] Which method?
+> **Membership tables** are mechanical and safe for identities with two or three sets: ideal for the exam when you are unsure. **Double inclusion** is the general method: use it whenever the statement is not a plain identity, for example “if $A \subseteq B$, then $A \cup C \subseteq B \cup C$”. **Algebra with identities** is the fastest once you know the table. And when you suspect a statement is false, sketch the Venn diagram first and look for a region that the two sides treat differently: that region **is** your counterexample.
+
+## Unions and intersections of many sets
+
+Union and intersection are associative, so we can drop the brackets and combine any number of sets: $A_1 \cup A_2 \cup \dots \cup A_n = \bigcup_{i=1}^{n} A_i$ contains the elements in **at least one** $A_i$, and $\bigcap_{i=1}^{n} A_i$ the elements in **every** $A_i$. These are the set versions of $\exists$ and $\forall$: $x \in \bigcup_i A_i$ means $\exists i\,(x \in A_i)$, and $x \in \bigcap_i A_i$ means $\forall i\,(x \in A_i)$.
+
+For example, with $A_i = \{i, i+1, i+2, \dots\}$ (all integers from $i$ upwards), $\bigcup_{i=1}^{n} A_i = A_1$ and $\bigcap_{i=1}^{n} A_i = A_n$, because the sets shrink as $i$ grows.
+
+## Sets inside a computer: bit strings
+
+How does a computer store a subset of a small universe? Fix an order of the universe, $U = \{a_1, a_2, \dots, a_n\}$, and store a subset $A$ as a string of $n$ bits: bit $i$ is 1 if $a_i \in A$ and 0 otherwise. These are the light switches from the power-set section.
+
+> [!example] Bit strings in action
+> Let $U = \{1, 2, \dots, 10\}$. The odd numbers $\{1, 3, 5, 7, 9\}$ become `1010101010`, and $\{1, 2, 3, 4, 5\}$ becomes `1111100000`. Now each set operation is one bitwise instruction:
+>
+> | Operation | Bitwise | Result | Set |
+> |---|---|---|---|
+> | union | OR | `1111101010` | $\{1, 2, 3, 4, 5, 7, 9\}$ |
+> | intersection | AND | `1010100000` | $\{1, 3, 5\}$ |
+> | complement of the odds | NOT | `0101010101` | $\{2, 4, 6, 8, 10\}$ |
+> | symmetric difference | XOR | `0101001010` | $\{2, 4, 7, 9\}$ |
+
+A processor performs these operations on 64 bits at once, so for small universes bit strings are the fastest sets there are. You have seen them already, maybe without noticing: a Unix file mode such as `755` is three sets of permissions written as bits, $7 = 111_2 = \{\text{read}, \text{write}, \text{execute}\}$ for the owner and $5 = 101_2 = \{\text{read}, \text{execute}\}$ for everyone else. Checking a permission is a bitwise AND, and granting one is a bitwise OR.
+
+## Jaccard similarity: sets that measure taste
+
+We can now answer the question from the beginning of the week properly.
+
+> [!definition] Jaccard similarity
+> For finite sets $A$ and $B$, not both empty, the **Jaccard similarity** is
+> $J(A, B) = \dfrac{|A \cap B|}{|A \cup B|}$.
+
+It is always between 0 (no common elements) and 1 (the same set). For Ayşe and Mert, $J(A, M) = 3/6 = 0.5$. Inclusion–exclusion even lets you compute it from sizes alone: $|A \cup B| = |A| + |B| - |A \cap B|$.
+
+A **recommender** built on it takes three steps, and every step is a set operation:
+
+1. For a user $u$, compute $J(u, v)$ for every other user $v$.
+2. Pick the most similar user $v$.
+3. Recommend the difference $v - u$: what $v$ likes and $u$ has not discovered yet.
+
+> [!industry] From playlists to plagiarism
+> To compare two essays, split each into **shingles**, the set of all runs of three consecutive words (“set of all”, “of all runs”, …). Copied text shares many shingles, so a high Jaccard similarity flags it, even when a few words were changed. Search engines use the same trick to group near-duplicate web pages, with a technique called MinHash that estimates $J$ without comparing the full sets.
+
+```python
+def jaccard(a: set, b: set) -> float:
+    return len(a & b) / len(a | b)
+
+jaccard(A, M)        # 0.5
+```
+
+## Summary
+
+A **set** is an unordered collection of distinct elements; order and repetition do not matter. We describe sets by **roster** or by **set-builder** notation (a comprehension). Two sets are **equal** when they have the same elements. $\emptyset$ has no elements, while $\{\emptyset\}$ has one, and a set counts only what is directly inside it. $A \subseteq B$ means $\forall x\,(x \in A \to x \in B)$; it is proved by taking an arbitrary element of $A$ and disproved by one counterexample. $\emptyset \subseteq S$ for every $S$ (vacuously), and $A = B$ exactly when $A \subseteq B$ and $B \subseteq A$.
+
+The **power set** $\mathcal{P}(S)$ contains all subsets of $S$, and $|\mathcal{P}(S)| = 2^{|S|}$ because a subset is a bit string. The **Cartesian product** $A \times B$ contains all ordered pairs, and $|A \times B| = |A| \cdot |B|$. **Union**, **intersection**, **difference**, **complement** and **symmetric difference** are the connectives ∨, ∧, “and not”, ¬ and ⊕ applied to membership, so every logical equivalence gives a **set identity**. Identities are proved by **double inclusion**, by **set-builder notation with logical equivalences**, or by **membership tables**, and disproved by one counterexample. **Inclusion–exclusion** counts a union, bit strings store small sets, and the **Jaccard similarity** $|A \cap B| / |A \cup B|$ measures how alike two sets are.
+
+## Practice
+
+> [!try] Exercises
+> 1. List the elements: (a) $\{x \in \mathbb{Z} \mid x^2 \lt 10\}$, (b) $\{2k + 1 \mid k \in \{0, 1, 2, 3\}\}$. Then write $\{1, 4, 9, 16, 25\}$ in set-builder notation.
+> 2. Let $A = \{\emptyset, 1, \{1, 2\}\}$. True or false: (a) $1 \in A$, (b) $\{1\} \subseteq A$, (c) $\{1, 2\} \subseteq A$, (d) $\{1, 2\} \in A$, (e) $\emptyset \in A$, (f) $\emptyset \subseteq A$. What is $|A|$?
+> 3. Write out $\mathcal{P}(\{a, b\})$ and $\mathcal{P}(\mathcal{P}(\emptyset))$. How many elements does $\mathcal{P}(\{1, 2, 3, 4, 5, 6\})$ have?
+> 4. Let $A = \{1, 2\}$ and $B = \{x, y, z\}$. List $A \times B$. What is $|B \times A \times A|$? Is $A \times B = B \times A$?
+> 5. With $U = \{1, \dots, 10\}$, $A = \{1, 2, 3, 4, 5\}$, $B = \{4, 5, 6, 7\}$, find $A \cup B$, $A \cap B$, $A - B$, $B - A$, $A \oplus B$ and $\overline{A \cup B}$. Check $|A \cup B|$ with inclusion–exclusion.
+> 6. Prove by double inclusion that $A - B = A \cap \overline{B}$.
+> 7. Prove with a membership table that $A \cup (B \cap C) = (A \cup B) \cap (A \cup C)$.
+> 8. Prove: if $A \subseteq B$, then $A \cup C \subseteq B \cup C$. Then show by a counterexample that $A \cup C = B \cup C$ does **not** imply $A = B$.
+> 9. Encode $A = \{2, 3, 5, 7\}$ and $B = \{1, 2, 3\}$ as bit strings over $U = \{1, \dots, 8\}$ and compute $A \cap B$, $A \cup B$ and $A \oplus B$ bitwise. Then compute $J(A, B)$.
+
+<details>
+<summary>Answers</summary>
+
+1. (a) $\{-3, -2, -1, 0, 1, 2, 3\}$. (b) $\{1, 3, 5, 7\}$. And $\{1, 4, 9, 16, 25\} = \{n^2 \mid n \in \mathbb{Z},\ 1 \le n \le 5\}$.
+2. (a) true; (b) true, because its only element, 1, is in $A$; (c) false, because $2 \notin A$; (d) true; (e) true; (f) true, as for every set. $|A| = 3$.
+3. $\mathcal{P}(\{a, b\}) = \{\emptyset, \{a\}, \{b\}, \{a, b\}\}$. $\mathcal{P}(\emptyset) = \{\emptyset\}$, so $\mathcal{P}(\mathcal{P}(\emptyset)) = \{\emptyset, \{\emptyset\}\}$. $2^6 = 64$.
+4. $A \times B = \{(1, x), (1, y), (1, z), (2, x), (2, y), (2, z)\}$. $|B \times A \times A| = 3 \cdot 2 \cdot 2 = 12$. No: $(1, x) \in A \times B$, but $(1, x) \notin B \times A$, whose pairs start with a letter.
+5. $A \cup B = \{1, \dots, 7\}$, $A \cap B = \{4, 5\}$, $A - B = \{1, 2, 3\}$, $B - A = \{6, 7\}$, $A \oplus B = \{1, 2, 3, 6, 7\}$, $\overline{A \cup B} = \{8, 9, 10\}$. Check: $5 + 4 - 2 = 7$. ✓
+6. ($\subseteq$) If $x \in A - B$, then $x \in A$ and $x \notin B$, so $x \in A$ and $x \in \overline{B}$, that is, $x \in A \cap \overline{B}$. ($\supseteq$) If $x \in A \cap \overline{B}$, then $x \in A$ and $x \notin B$, so $x \in A - B$.
+7. The eight rows (A, B, C) give $A \cup (B \cap C)$ = 1, 1, 1, 1, 1, 0, 0, 0 and $(A \cup B) \cap (A \cup C)$ = 1, 1, 1, 1, 1, 0, 0, 0 (rows in the order 111, 110, 101, 100, 011, 010, 001, 000). The columns are identical.
+8. Let $x \in A \cup C$. If $x \in A$, then $x \in B$ because $A \subseteq B$, so $x \in B \cup C$. If $x \in C$, then $x \in B \cup C$ directly. In both cases $x \in B \cup C$ (a proof by cases). Counterexample: $A = \{1\}$, $B = \emptyset$, $C = \{1\}$ gives $A \cup C = B \cup C = \{1\}$, but $A \neq B$.
+9. $A$ = `01101010`, $B$ = `11100000`. AND = `01100000` = $\{2, 3\}$; OR = `11101010` = $\{1, 2, 3, 5, 7\}$; XOR = `10001010` = $\{1, 5, 7\}$. $J(A, B) = 2/5 = 0.4$.
+</details>
+
+## Before the lab
+
+In [Lab 7](/labs/lab-07) you will build the tools of this week in Python: the power set and the Cartesian product written by hand, a membership-table checker that proves (or breaks) set identities, and a small course recommender driven by Jaccard similarity. Keep the box picture in mind: most bugs this week come from mixing up an element with a set that contains it.
+
+> [!note] Midterm
+> The midterm is on **Tuesday, November 24, 17:00–19:00, in room A206**, outside our class hours. It covers weeks 1–7: propositional logic, predicate logic, rules of inference and proofs. Sets are not on the midterm, but they use the same logic, so this week is good practice too.

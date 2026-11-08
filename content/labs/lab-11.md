@@ -1,6 +1,6 @@
 ---
 lab: 11
-week: 13
+week: 12
 title: "Counting and the Birthday Paradox"
 description: "Count with itertools, verify formulas, estimate password spaces and simulate the birthday paradox."
 assignment: lab11

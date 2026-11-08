@@ -2,12 +2,13 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import SectionHeading from '@/components/SectionHeading.astro';
 import Roadmap from '@/components/Roadmap.astro';
-import { getWeeksSorted, schedule, scheduleOf, formatDate, weekHref, moduleOf, moduleColorVar, labHref, pad } from '@/lib/site';
+import { getWeeksSorted, schedule, scheduleOf, formatDate, weekHref, moduleOf, moduleColorVar, labHref, pad, midtermWeek, formatMidterm } from '@/lib/site';
 const weeks = await getWeeksSorted();
+const mid = midtermWeek();
 ---
 <BaseLayout title="Schedule" description="Fall 2026 schedule of Discrete Mathematics: fifteen Mondays, six modules, weekly labs, midterm and final.">
   <div class="wrap py-14 md:py-20">
-    <SectionHeading eyebrow="Schedule · Fall 2026" title="The semester at a glance" lede="Dates are Mondays. Exam dates are set by the faculty and will be confirmed here and on the WhatsApp channel." />
+    <SectionHeading eyebrow="Schedule · Fall 2026" title="The semester at a glance" lede="Dates are Mondays. The midterm is on Tuesday, November 24 (17:00–19:00, A206), outside class hours; the final date is set by the faculty." />
 
     <div class="mt-10 overflow-x-auto rounded-2xl border border-line bg-card">
       <table class="w-full min-w-[640px] text-sm">
@@ -24,7 +25,7 @@ const weeks = await getWeeksSorted();
           {weeks.map((w) => {
             const s = scheduleOf(w.data.week);
             const m = moduleOf(w.data.module);
-            return (
+            return (<>
               <tr class="border-b border-line last:border-0 hover:bg-paper-2/40" data-week-date={s?.date}>
                 <td class="px-4 py-3"><span class="inline-grid size-8 place-items-center rounded-lg font-mono text-xs font-semibold text-white dark:text-paper" style={`background:${moduleColorVar(m)}`}>{pad(w.data.week)}</span></td>
                 <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-2">{formatDate(s?.date)}</td>
@@ -35,7 +36,14 @@ const weeks = await getWeeksSorted();
                 <td class="px-4 py-3 text-xs text-ink-2">{w.data.reading}</td>
                 <td class="px-4 py-3 font-mono text-xs">{w.data.lab ? <a href={labHref(w.data.lab)} class="text-brand hover:underline">{w.data.lab}</a> : <span class="text-ink-3">—</span>}</td>
               </tr>
-            );
+              {w.data.week === mid && (
+                <tr class="border-b border-line bg-accent-soft/50" id="midterm">
+                  <td class="px-4 py-3"><span class="inline-grid size-8 place-items-center rounded-lg bg-accent font-mono text-xs font-semibold text-white">M</span></td>
+                  <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-2">{formatDate(schedule.midterm.date)}</td>
+                  <td class="px-4 py-3" colspan="3"><span class="font-semibold text-ink">{schedule.midterm.label}</span><span class="mt-0.5 block text-xs text-ink-3">{formatMidterm()} · {schedule.midterm.note}</span></td>
+                </tr>
+              )}
+            </>);
           })}
           <tr class="bg-accent-soft/50">
             <td class="px-4 py-3"><span class="inline-grid size-8 place-items-center rounded-lg bg-accent font-mono text-xs font-semibold text-white">F</span></td>

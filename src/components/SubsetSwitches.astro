@@ -1,0 +1,82 @@
+---
+/**
+ * Subsets as light switches: one switch per element, so a subset is a bit string. Flip the switches to
+ * pick a subset; the grid below lists every subset of the set, and grows ×2 with each element you add.
+ */
+interface Props { id?: string; }
+const { id = 'subsets' } = Astro.props;
+const items = ['cheese', 'olives', 'mushrooms', 'peppers', 'corn'];
+---
+<div class="subsw card my-8 overflow-hidden shadow-soft" data-subsw id={id} data-items={JSON.stringify(items)}>
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-2/70 px-4 py-2.5">
+    <span class="font-mono text-[11px] text-ink-3">subsets as switches · one bit per element</span>
+    <span class="flex items-center gap-1.5">
+      <button type="button" data-subsw-less class="rounded-md border border-line-2 bg-card px-2 py-0.5 font-mono text-[12px] text-ink hover:border-brand" aria-label="Remove an element">− element</button>
+      <button type="button" data-subsw-more class="rounded-md border border-line-2 bg-card px-2 py-0.5 font-mono text-[12px] text-ink hover:border-brand" aria-label="Add an element">+ element</button>
+    </span>
+  </div>
+  <div class="p-4 sm:p-5">
+    <p class="font-mono text-[13px] text-ink-2">S = <span data-subsw-set class="text-ink"></span></p>
+    <div data-subsw-switches class="mt-3 flex flex-wrap gap-2"></div>
+    <div class="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+      <p class="m-0 font-mono text-[13px] text-ink-3">bits <span data-subsw-bits class="ml-1 text-2xl font-bold tracking-[0.2em] text-brand"></span></p>
+      <p class="m-0 min-w-0 font-mono text-[13px] text-ink-3">subset <span data-subsw-subset class="text-ink"></span></p>
+    </div>
+    <p class="eyebrow mt-5">P(S): all <span data-subsw-count></span> subsets</p>
+    <ol data-subsw-grid class="subsw-grid mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4"></ol>
+  </div>
+</div>
+
+<style is:global>
+  .subsw .sw { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--line-2); border-radius: 0.6rem; padding: 0.35rem 0.7rem 0.35rem 0.4rem; background: var(--card); font-size: 13px; color: var(--ink-2); cursor: pointer; }
+  .subsw .sw .knob { width: 2rem; height: 1.1rem; border-radius: 1rem; background: var(--line-2); position: relative; transition: background 0.15s; }
+  .subsw .sw .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: calc(1.1rem - 4px); height: calc(1.1rem - 4px); border-radius: 50%; background: var(--card); transition: transform 0.15s; }
+  .subsw .sw[aria-pressed='true'] { border-color: var(--brand); color: var(--ink); }
+  .subsw .sw[aria-pressed='true'] .knob { background: var(--brand); }
+  .subsw .sw[aria-pressed='true'] .knob::after { transform: translateX(0.9rem); }
+  .prose-lesson .subsw ol.subsw-grid { list-style: none; padding: 0; margin-bottom: 0; }
+  .prose-lesson .subsw ol.subsw-grid > li { margin: 0; }
+  .subsw .subsw-grid button { width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.3rem 0.5rem; background: var(--paper); font-family: ui-monospace, monospace; font-size: 11.5px; line-height: 1.35; color: var(--ink-2); }
+  .subsw .subsw-grid button b { color: var(--ink-3); font-weight: 600; margin-right: 0.4rem; }
+  .subsw .subsw-grid button.cur { border-color: var(--brand); background: var(--brand-soft); color: var(--ink); }
+  .subsw .subsw-grid button.cur b { color: var(--brand); }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-subsw]').forEach((root) => {
+    const all: string[] = JSON.parse(root.dataset.items!);
+    let n = 3;
+    let on = [true, false, true, false, false];
+    const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const fmt = (xs: string[]) => (xs.length ? `{${xs.join(', ')}}` : '∅');
+
+    const render = () => {
+      const items = all.slice(0, n);
+      $('[data-subsw-set]').textContent = fmt(items);
+      $('[data-subsw-switches]').innerHTML = items.map((x, i) =>
+        `<button type="button" class="sw" data-i="${i}" aria-pressed="${on[i]}"><span class="knob"></span>${x}</button>`).join('');
+      const bits = items.map((_, i) => (on[i] ? '1' : '0')).join('');
+      $('[data-subsw-bits]').textContent = bits;
+      $('[data-subsw-subset]').textContent = fmt(items.filter((_, i) => on[i]));
+      $('[data-subsw-count]').innerHTML = `2<sup>${n}</sup> = ${2 ** n}`;
+      $('[data-subsw-grid]').innerHTML = Array.from({ length: 2 ** n }, (_, k) => {
+        const b = k.toString(2).padStart(n, '0');
+        return `<li><button type="button" data-bits="${b}" class="${b === bits ? 'cur' : ''}"><b>${b}</b>${fmt(items.filter((_, i) => b[i] === '1'))}</button></li>`;
+      }).join('');
+      $<HTMLButtonElement>('[data-subsw-less]').disabled = n <= 1;
+      $<HTMLButtonElement>('[data-subsw-more]').disabled = n >= all.length;
+    };
+
+    root.addEventListener('click', (ev) => {
+      const t = (ev.target as HTMLElement).closest<HTMLElement>('button');
+      if (!t || !root.contains(t)) return;
+      if (t.dataset.i !== undefined) on[+t.dataset.i] = !on[+t.dataset.i];
+      else if (t.dataset.bits) on = [...t.dataset.bits].map((c) => c === '1').concat(on.slice(n));
+      else if (t.hasAttribute('data-subsw-more')) { on[n] = false; n = Math.min(all.length, n + 1); }
+      else if (t.hasAttribute('data-subsw-less')) n = Math.max(1, n - 1);
+      else return;
+      render();
+    });
+    render();
+  });
+</script>

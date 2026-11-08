@@ -1,5 +1,12 @@
 {
-  "_note": "One row per week. 'date' is the Monday of that week (YYYY-MM-DD). status: normal | holiday | postponed | exam. 'note' appears next to the week.",
+  "_note": "One row per week. 'date' is the Monday of that week (YYYY-MM-DD). status: normal | holiday | postponed | exam. 'note' appears next to the week. 'midterm' is shown in the week that contains its date.",
+  "midterm": {
+    "label": "Midterm exam",
+    "date": "2026-11-24",
+    "time": "17:00–19:00",
+    "room": "A206",
+    "note": "Weeks 1–7, outside class hours"
+  },
   "finals": {
     "label": "Final exam",
     "date": "",
@@ -51,8 +58,8 @@
     {
       "week": 8,
       "date": "2026-11-09",
-      "status": "exam",
-      "note": "Midterm week (date to be confirmed by the faculty)"
+      "status": "normal",
+      "note": ""
     },
     {
       "week": 9,
@@ -94,7 +101,7 @@
       "week": 15,
       "date": "2026-12-28",
       "status": "normal",
-      "note": "Project demo day"
+      "note": ""
     }
   ]
 }

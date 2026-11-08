@@ -1,41 +1,39 @@
 ---
 week: 14
-title: "Graphs: Models, Terminology and Representations"
-description: "Graphs as models of networks, degree and the handshake theorem, special graphs, representations and isomorphism."
+title: "Connectivity, Coloring and Trees"
+description: "Paths and connectivity, graph coloring, and trees."
 module: m6
 status: draft
-reading: "Rosen 10.1–10.3"
-lab: lab-12
+reading: "Rosen 10.4, 10.8, 11.1"
+lab: lab-13
 objectives:
-  - "Model real problems as simple graphs, multigraphs and directed graphs."
-  - "Use degree and the handshake theorem."
-  - "Recognize complete, cycle, wheel, cube and bipartite graphs."
-  - "Represent graphs with adjacency lists and matrices and choose between them."
-  - "Decide whether two graphs are isomorphic using invariants."
+  - "Decide connectivity and find connected components."
+  - "Explain Euler and Hamilton paths and when they exist."
+  - "Color graphs, compute simple chromatic numbers and apply coloring to scheduling."
+  - "Use the properties of trees: n vertices, n − 1 edges, unique paths."
 wow:
-  title: "Google Maps, LinkedIn and your compiler all see the world as G = (V, E)."
-  text: "Cities and roads, people and connections, variables and conflicts: one abstraction, dozens of billion-dollar products. This week you learn the vocabulary; in the lab you load a real network and query it."
+  title: "Four colors are enough for any map, and the proof needed a computer."
+  text: "The four color theorem was proved in 1976 by checking about 1,500 cases by computer, the first famous computer-assisted proof. Graph coloring also schedules your exams and assigns CPU registers in every compiler."
 industry:
-  - {"t": "Navigation", "d": "Route planning runs shortest-path algorithms on graphs with millions of vertices."}
-  - {"t": "Social networks", "d": "Friend suggestions, influence and communities are graph problems."}
-  - {"t": "Dependencies", "d": "Package managers (pip, npm) resolve dependency graphs; build systems order them."}
+  - {"t": "Scheduling", "d": "Exam timetables: courses are vertices, shared students are edges, time slots are colors."}
+  - {"t": "Compilers", "d": "Register allocation colors an interference graph so that variables share CPU registers safely."}
+  - {"t": "File systems and data", "d": "Folders, JSON documents and HTML pages are trees; Huffman trees compress files."}
 slides: []
 resources:
-  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Chapter 4, graph theory"}
-  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapters 11–12, graphs"}
-  - {"title": "Graph Online", "url": "https://graphonline.top/en/", "note": "draw and explore graphs"}
-tags: ["graph", "degree", "handshake", "bipartite", "adjacency", "isomorphism"]
+  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Chapter 4.4, coloring"}
+  - {"title": "Four color theorem (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Four_color_theorem"}
+  - {"title": "Register allocation (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Register_allocation"}
+tags: ["connectivity", "Euler", "Hamilton", "coloring", "chromatic number", "tree", "spanning tree"]
 ---
 
 ## Topics
 
-- Graph models
-- Degree, handshake theorem
-- Special graphs and bipartite graphs
-- Adjacency lists and matrices
-- Graph isomorphism and invariants
+- Paths, connectivity, components
+- Euler and Hamilton paths
+- Graph coloring and chromatic number
+- Trees and spanning trees
 
 ## Before class
 
-- Skim Rosen 10.1–10.3 (20 minutes is enough; we go through it together).
+- Skim Rosen 10.4, 10.8, 11.1 (20 minutes is enough; we go through it together).
 - Bring paper and a pen: part of every lecture is solving by hand.

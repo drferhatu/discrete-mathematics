@@ -1,6 +1,6 @@
 ---
 lab: 8
-week: 10
+week: 9
 title: "Relation Properties and Hashing"
 description: "Check properties of relations, compute equivalence classes and transitive closure, and measure hash collisions."
 assignment: lab08

@@ -1,41 +1,41 @@
 ---
 week: 13
-title: "Counting and the Pigeonhole Principle"
-description: "Product and sum rules, permutations, combinations, and the pigeonhole principle."
-module: m5
+title: "Graphs: Models, Terminology and Representations"
+description: "Graphs as models of networks, degree and the handshake theorem, special graphs, representations and isomorphism."
+module: m6
 status: draft
-reading: "Rosen 6.1–6.3"
-lab: lab-11
+reading: "Rosen 10.1–10.3"
+lab: lab-12
 objectives:
-  - "Apply the product rule, the sum rule and the subtraction rule."
-  - "Count arrangements with permutations and selections with combinations."
-  - "Use the pigeonhole principle and its generalized form."
-  - "Estimate password spaces and brute-force times."
-  - "Simulate the birthday paradox and connect it to hash collisions."
+  - "Model real problems as simple graphs, multigraphs and directed graphs."
+  - "Use degree and the handshake theorem."
+  - "Recognize complete, cycle, wheel, cube and bipartite graphs."
+  - "Represent graphs with adjacency lists and matrices and choose between them."
+  - "Decide whether two graphs are isomorphic using invariants."
 wow:
-  title: "With 23 people in a room, two probably share a birthday."
-  text: "It feels impossible, but counting says so, and a 10-line simulation agrees. The same math tells attackers how many tries it takes to find a hash collision, which is why hash sizes are chosen the way they are."
+  title: "Google Maps, LinkedIn and your compiler all see the world as G = (V, E)."
+  text: "Cities and roads, people and connections, variables and conflicts: one abstraction, dozens of billion-dollar products. This week you learn the vocabulary; in the lab you load a real network and query it."
 industry:
-  - {"t": "Security", "d": "Password policies and key lengths are chosen by counting the search space an attacker must cover."}
-  - {"t": "Hashing", "d": "The pigeonhole principle guarantees collisions; the birthday bound says how soon they appear."}
-  - {"t": "Testing", "d": "Combinatorial (pairwise) testing picks a small set of configurations that covers every pair of options."}
+  - {"t": "Navigation", "d": "Route planning runs shortest-path algorithms on graphs with millions of vertices."}
+  - {"t": "Social networks", "d": "Friend suggestions, influence and communities are graph problems."}
+  - {"t": "Dependencies", "d": "Package managers (pip, npm) resolve dependency graphs; build systems order them."}
 slides: []
 resources:
-  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Chapter 1, counting"}
-  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapter 15, cardinality rules"}
-  - {"title": "Birthday problem (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Birthday_problem"}
-tags: ["counting", "product rule", "pigeonhole", "permutation", "combination", "binomial", "birthday paradox"]
+  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Chapter 4, graph theory"}
+  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapters 11–12, graphs"}
+  - {"title": "Graph Online", "url": "https://graphonline.top/en/", "note": "draw and explore graphs"}
+tags: ["graph", "degree", "handshake", "bipartite", "adjacency", "isomorphism"]
 ---
 
 ## Topics
 
-- Product and sum rules
-- Inclusion–exclusion for two sets
-- The pigeonhole principle
-- Permutations and combinations
-- Binomial coefficients and Pascal's triangle
+- Graph models
+- Degree, handshake theorem
+- Special graphs and bipartite graphs
+- Adjacency lists and matrices
+- Graph isomorphism and invariants
 
 ## Before class
 
-- Skim Rosen 6.1–6.3 (20 minutes is enough; we go through it together).
+- Skim Rosen 10.1–10.3 (20 minutes is enough; we go through it together).
 - Bring paper and a pen: part of every lecture is solving by hand.

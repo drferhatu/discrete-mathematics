@@ -1,6 +1,6 @@
 ---
 lab: 10
-week: 12
+week: 11
 title: "Recursion and Growth"
 description: "Write recursive functions, check them against induction proofs, and measure running times to see Big-O on a plot."
 assignment: lab10

@@ -1,42 +1,44 @@
 ---
 week: 10
-title: "Relations and Functions"
-description: "Relations and their properties, equivalence relations, and functions: injective, surjective, bijective."
+title: "Sequences, Sums and the Sizes of Infinity"
+description: "Sequences and recurrences, summation formulas, and why some infinite sets are bigger than others."
 module: m4
 status: draft
-reading: "Rosen 2.3, 9.1, 9.5"
-lab: lab-08
+reading: "Rosen 2.4–2.5"
+lab: lab-09
 objectives:
-  - "Represent relations as sets of pairs, matrices and directed graphs."
-  - "Test reflexivity, symmetry, antisymmetry and transitivity."
-  - "Find equivalence classes and explain partitions."
-  - "Classify functions as injective, surjective or bijective, and compose and invert them."
-  - "Explain hash functions and collisions in terms of functions."
+  - "Define sequences explicitly and by recurrence, including Fibonacci."
+  - "Evaluate arithmetic and geometric sums and use summation notation."
+  - "Decide whether two sets have the same cardinality using bijections."
+  - "Show that ℤ and ℚ are countable and that ℝ is not (Cantor's diagonal argument)."
+  - "Connect uncountability to the existence of problems no program can solve."
 wow:
-  title: "A relational database is literally a set of relations."
-  text: "Edgar Codd built the relational model in 1970 directly on this week's definitions. Every table you query is a relation, and every key constraint is a statement about functions."
+  title: "There are more problems than programs."
+  text: "Programs are finite strings, so there are countably many of them. Yes/no problems are subsets of ℕ, and there are uncountably many. Cantor's 1891 diagonal trick therefore proves that most problems cannot be solved by any computer, ever."
 industry:
-  - {"t": "Relational databases", "d": "Tables are relations; primary keys make them functions from key to row."}
-  - {"t": "Hash tables", "d": "A hash function maps keys to buckets. It cannot be injective, which is why collisions must be handled."}
-  - {"t": "Version control", "d": "Git's commit history is a relation (“is an ancestor of”) that is reflexive, antisymmetric and transitive: a partial order."}
-slides: []
+  - {"t": "Algorithm analysis", "d": "Running times are sums: a nested loop costs 1 + 2 + … + n = n(n+1)/2 steps."}
+  - {"t": "Finance and growth", "d": "Compound interest and population models are geometric sequences and recurrences."}
+  - {"t": "Computability", "d": "The halting problem uses the same diagonal argument as Cantor."}
+slides:
+  - {"title": "Slides: sequences and sums", "file": "dm-2026-w11-sequences-sums.pdf"}
+  - {"title": "Slides: cardinality of sets", "file": "dm-2026-w11-cardinality.pdf"}
 resources:
-  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapters 4.3–4.4, 10"}
-  - {"title": "Book of Proof (Richard Hammack)", "url": "https://richardhammack.github.io/BookOfProof/", "note": "Chapters 11–12, relations and functions"}
-  - {"title": "Discrete Mathematics: An Open Introduction (Oscar Levin)", "url": "https://discrete.openmathbooks.org/", "note": "Section 0.4, functions"}
-tags: ["relation", "equivalence relation", "partial order", "function", "bijection", "hash"]
+  - {"title": "Mathematics for Computer Science (Lehman, Leighton, Meyer)", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf", "note": "Chapter 8, infinite sets"}
+  - {"title": "Stanford CS103 Mathematical Foundations of Computing", "url": "https://web.stanford.edu/class/cs103/", "note": "cardinality and unsolvable problems lectures"}
+  - {"title": "Cantor's diagonal argument (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Cantor%27s_diagonal_argument"}
+tags: ["sequence", "recurrence", "summation", "Fibonacci", "cardinality", "countable", "Cantor", "halting problem"]
 ---
 
 ## Topics
 
-- Relations and representations
-- Properties of relations
-- Equivalence relations and partitions
-- Functions, domain, codomain, range
-- Injective, surjective, bijective
-- Composition and inverses; floor and ceiling
+- Sequences, recurrence relations, Fibonacci
+- Arithmetic and geometric progressions
+- Summations and closed forms
+- Cardinality, countable sets
+- Cantor's diagonal argument
+- Uncountability and computability
 
 ## Before class
 
-- Skim Rosen 2.3, 9.1, 9.5 (20 minutes is enough; we go through it together).
+- Skim Rosen 2.4–2.5 (20 minutes is enough; we go through it together).
 - Bring paper and a pen: part of every lecture is solving by hand.

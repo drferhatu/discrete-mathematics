@@ -7,7 +7,7 @@ import LogicPlayground from '@/components/LogicPlayground.astro';
 import Terminal from '@/components/Terminal.astro';
 import NotebookEmbed from '@/components/NotebookEmbed.astro';
 import { render, getCollection } from 'astro:content';
-import { getWeeksSorted, moduleOf, moduleColorVar, scheduleOf, formatDate, STATUS_LABEL, href, weekSlug, labHref, pad, labStartUrl, labDue, formatDue } from '@/lib/site';
+import { getWeeksSorted, moduleOf, moduleColorVar, scheduleOf, formatDate, STATUS_LABEL, midtermWeek, formatMidterm, href, weekSlug, labHref, pad, labStartUrl, labDue, formatDue } from '@/lib/site';
 
 export async function getStaticPaths() {
   const weeks = await getWeeksSorted();
@@ -45,6 +45,7 @@ const tocAfter = [
         <ModuleChip module={m} size="md" />
         {dateLong && <span class="font-mono text-sm text-ink-2">Monday, {dateLong}</span>}
         {d.exam && <span class="rounded-md bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">Exam</span>}
+        {d.week === midtermWeek() && <a href={href('/schedule#midterm')} class="rounded-md bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">Midterm: {formatMidterm()}</a>}
         {statusLabel && !d.exam && <span class="rounded-md bg-paper-2 px-2.5 py-1 text-xs font-semibold text-ink-2">{statusLabel}</span>}
       </div>
       <h1 class="display mt-5 max-w-4xl text-4xl leading-[1.02] text-ink sm:text-5xl md:text-6xl">{d.title}</h1>

@@ -1,6 +1,6 @@
 ---
 lab: 9
-week: 11
+week: 10
 title: "Recurrences and Cantor's Diagonal"
 description: "Compute recurrences three ways, check summation formulas, and run Cantor's diagonal argument on a list of binary strings."
 assignment: lab09
